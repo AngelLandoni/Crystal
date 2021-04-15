@@ -2,7 +2,8 @@ use std::{
     rc::Rc,
     sync::Arc,
     thread::{JoinHandle, spawn},
-    fmt::{Debug, Result, Formatter}
+    fmt::{Debug, Result, Formatter},
+    ops::Deref
 };
 
 use crossbeam_queue::SegQueue;
@@ -14,7 +15,7 @@ use crate::{
 
 /// Just a handy wrapper of the task queue so we do not deal with 
 /// large data types.
-type TaskQueue = Arc<SegQueue<Arc<dyn Executable + Send + Sync>>>;
+type TaskQueue = Arc<SegQueue<Box<dyn Executable + Send>>>;
 
 /// Defines a worker.
 struct Worker {
@@ -120,10 +121,12 @@ impl Dispatcher for Workers {
     /// # Arguments
     /// 
     /// `task` - The task to be executed.
-    fn execute<T: Executable>(&self, task: T) {
+    fn execute<T>(&self, task: T) where
+        T: Executable + Send
+    {
         // For now the task is executed but it must be 
         // dispatched into the concurrent queue.
-        task.execute();
+        //self.queue.push(Box::new(task));
     }
 
     /// Executes the provided task by dynamic dispatching as soon as
@@ -132,8 +135,8 @@ impl Dispatcher for Workers {
     /// # Arguments
     /// 
     /// `task` -The task to be executed.
-    fn execute_dyn(&self, task: Rc<dyn Executable>) {
-        task.execute();
+    fn execute_dyn(&self, task: Box<dyn Executable + Send>) {
+        self.queue.push(task);
     }
 
     /// Executes the provided tasks by dynamic dispatching as soon as
@@ -142,10 +145,12 @@ impl Dispatcher for Workers {
     /// # Arguments
     /// 
     /// `task` -The task to be executed 
-    fn execute_batch(&self, tasks: Vec<Rc<dyn Executable>>) {
-        tasks.iter().for_each(|task| {
-            task.execute();
-        });
+    fn execute_batch(
+        &self,
+        tasks: Vec<Box<dyn Executable + Send>>) {
+        for task in tasks {
+            self.queue.push(task);
+        }
     }
 }
 

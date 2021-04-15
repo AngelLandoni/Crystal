@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::task::Executable;
 
 /// Defines how a dispatcher should behave.
@@ -11,11 +9,11 @@ pub trait Dispatcher {
     fn start(&mut self);
 
     /// Defines a task execution.
-    fn execute<T: Executable>(&self, task: T);
+    fn execute<T: Executable + Send>(&self, task: T);
 
     /// Defines a task exection by dynamic dispatching.
-    fn execute_dyn(&self, task: Rc<dyn Executable>);
+    fn execute_dyn(&self, task: Box<dyn Executable + Send>);
 
     /// Defines a tasks execution by dynamic dispatching. 
-    fn execute_batch(&self, tasks: Vec<Rc<dyn Executable>>);
+    fn execute_batch(&self, tasks: Vec<Box<dyn Executable + Send>>);
 }
