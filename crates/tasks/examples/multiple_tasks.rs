@@ -4,7 +4,8 @@ use tasks::{Workers, Task, Dispatcher, Priority, Executable};
 
 fn main() {
     // Create a new worker pool.
-    let workers: Workers = Workers::default();
+    let mut workers: Workers = Workers::default();
+    workers.start();
 
     let task1 = Task::new(Priority::High, || {
         println!("Working!!!!!!");
@@ -25,5 +26,4 @@ fn main() {
     vec.push(Rc::new(task3));
 
     workers.execute_batch(vec);
-
 }

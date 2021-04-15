@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 num_cpus = "1"
+lockfree = "0.5.1"

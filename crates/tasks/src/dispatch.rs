@@ -7,6 +7,9 @@ use crate::task::Executable;
 /// Normaly it is used to aftract a ThreadPool or something 
 /// used to execute work in an specific order o way.
 pub trait Dispatcher {
+    /// Defines a entry point for the Dispatcher.
+    fn start(&mut self);
+
     /// Defines a task execution.
     fn execute<T: Executable>(&self, task: T);
 
