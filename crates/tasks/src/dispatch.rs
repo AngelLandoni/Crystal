@@ -7,10 +7,7 @@ use crate::task::Executable;
 pub trait Dispatcher {
     /// Defines a entry point for the Dispatcher.
     fn start(&mut self);
-
-    /// Defines a task execution.
-    fn execute<T: Executable + Send>(&self, task: T);
-
+ 
     /// Defines a task exection by dynamic dispatching.
     fn execute_dyn(&self, task: Box<dyn Executable + Send>);
 

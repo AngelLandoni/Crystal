@@ -80,7 +80,7 @@ impl Default for Workers {
                 // Get the number of CPUs and calculate the amount of 
                 // workers needed.
                 amount: num_cpus::get() * 2,
-                name: None
+                name: Some("Crystal workers".to_string())
             },
             workers: Vec::new(),
             queue: Arc::new(SegQueue::new())
@@ -114,19 +114,6 @@ impl Dispatcher for Workers {
     /// Create and deploy all the workers needed.
     fn start(&mut self) {
         self.spawn_workers();
-    }
-
-    /// Executes the provided task as soon as possible.
-    ///
-    /// # Arguments
-    /// 
-    /// `task` - The task to be executed.
-    fn execute<T>(&self, task: T) where
-        T: Executable + Send
-    {
-        // For now the task is executed but it must be 
-        // dispatched into the concurrent queue.
-        //self.queue.push(Box::new(task));
     }
 
     /// Executes the provided task by dynamic dispatching as soon as
