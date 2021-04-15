@@ -1,10 +1,11 @@
 use std::{
     rc::Rc,
     sync::Arc,
-    thread::{JoinHandle, spawn}
+    thread::{JoinHandle, spawn},
+    fmt::{Debug, Result, Formatter}
 };
 
-use lockfree::queue::Queue;
+use crossbeam_queue::SegQueue;
 
 use crate::{
     dispatch::Dispatcher,
@@ -13,7 +14,7 @@ use crate::{
 
 /// Just a handy wrapper of the task queue so we do not deal with 
 /// large data types.
-type TaskQueue = Arc<Queue<Arc<dyn Executable + Send + Sync>>>;
+type TaskQueue = Arc<SegQueue<Arc<dyn Executable + Send + Sync>>>;
 
 /// Defines a worker.
 struct Worker {
@@ -48,7 +49,7 @@ pub struct Workers {
     /// TODO(Angel): We could use a Box insted of a Rc and drop it 
     /// when the Workers is destroyed because the threads should be
     /// stoped before the Workers deletion.
-    queue: TaskQueue 
+    queue: TaskQueue
 }
 
 /// Provides defaults constructors for `Workers`.
@@ -59,7 +60,7 @@ impl Workers {
         Self {
             descriptor,
             workers: Vec::new(),
-            queue: Arc::new(Queue::new())
+            queue: Arc::new(SegQueue::new())
         }
     }
 }
@@ -81,7 +82,7 @@ impl Default for Workers {
                 name: None
             },
             workers: Vec::new(),
-            queue: Arc::new(Queue::new())
+            queue: Arc::new(SegQueue::new())
         }
     }
 }
@@ -168,4 +169,21 @@ fn worker_loop(task_queue: TaskQueue) -> JoinHandle<()> {
             } 
         }
     })
+}
+
+/// Provide a debug function.
+impl Debug for Workers {
+    fn fmt(&self, formatter: &mut Formatter) -> Result {
+        write!(formatter, r#"
+[+] Workers:
+    [*] name: {}
+    [*] number of workers: {}
+    [*] tasks:
+        [*] remaining: ???
+        [*] names: [???]
+        [*] priority: [???]
+        "#,
+        self.descriptor.name.as_ref().unwrap_or(&String::from("???")),
+        self.descriptor.amount)
+    }
 }

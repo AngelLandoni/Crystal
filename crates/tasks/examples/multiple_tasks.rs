@@ -7,23 +7,16 @@ fn main() {
     let mut workers: Workers = Workers::default();
     workers.start();
 
-    let task1 = Task::new(Priority::High, || {
-        println!("Working!!!!!!");
-    });
-    
-    let task2 = Task::new(Priority::Medium, || {
-        println!("Working2!!!!");
-    });
+    print!("{:?}", workers);
 
-    let task3 = Task::new(Priority::Low, || {
-        println!("Working3!!!!");
-    });
-
-    let mut vec: Vec<Rc<dyn Executable>> = Vec::new();
-
-    vec.push(Rc::new(task1));
-    vec.push(Rc::new(task2));
-    vec.push(Rc::new(task3));
-
-    workers.execute_batch(vec);
+    loop {
+        let mut vec: Vec<Rc<dyn Executable>> = Vec::new();
+        for i in 1..10000 {
+            vec.push(Rc::new(Task::new(Priority::High, move || {
+                println!("Job: {}", i);
+            })));
+        }
+        workers.execute_batch(vec);
+        //std::thread::sleep(std::time::Duration::from_millis(16));
+    }
 }
