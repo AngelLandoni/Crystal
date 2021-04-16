@@ -1,9 +1,7 @@
 use std::{
-    rc::Rc,
     sync::Arc,
-    thread::{JoinHandle, spawn},
+    thread::{JoinHandle, Builder},
     fmt::{Debug, Result, Formatter},
-    ops::Deref
 };
 
 use crossbeam_queue::SegQueue;
@@ -31,7 +29,7 @@ pub struct WorkersDescriptor {
     /// Contains the number of workers needed.
     pub amount: usize,
     /// A name used to identify the `ThreadPool`
-    pub name: Option<String>
+    pub name: String
 }
 
 /// Defines a `ThreadPool`.
@@ -80,7 +78,7 @@ impl Default for Workers {
                 // Get the number of CPUs and calculate the amount of 
                 // workers needed.
                 amount: num_cpus::get() * 2,
-                name: Some("Crystal workers".to_string())
+                name: "Crystal workers".to_string()
             },
             workers: Vec::new(),
             queue: Arc::new(SegQueue::new())
@@ -100,7 +98,10 @@ impl Workers {
             let queue_ref: TaskQueue = self.queue.clone();
             // Create a new worker.
             let new_worker: Worker = Worker {
-                handle: worker_loop(queue_ref), 
+                handle: worker_loop(
+                    format!("[{}]{:?}", i, self.descriptor.name),
+                    queue_ref
+                ), 
                 id: i
             };
             // Send the worker to the pool.
@@ -146,8 +147,15 @@ impl Dispatcher for Workers {
 /// # Arguments
 /// 
 /// `task_queue` - The task queue referece to be moved into the loop.
-fn worker_loop(task_queue: TaskQueue) -> JoinHandle<()> {
-    spawn(move || {
+fn worker_loop(
+    name: String,
+    task_queue: TaskQueue) -> JoinHandle<()> {
+
+    // Create a new thread builder.
+    // TODO(Angel): Define stack size.
+    let thread_builder: Builder = Builder::new()
+                                          .name(name);
+    match thread_builder.spawn(move || {
         // Force move ownership.
         let t_queue = task_queue;
 
@@ -160,22 +168,32 @@ fn worker_loop(task_queue: TaskQueue) -> JoinHandle<()> {
                 // Go to sleep here.
             } 
         }
-    })
+    }) {
+        Ok(handle) => handle,
+        Err(_) => panic!("Error when creating the threads")
+    }
 }
 
-/// Provide a debug function.
+/// Provide a debug function for the Workers.
 impl Debug for Workers {
     fn fmt(&self, formatter: &mut Formatter) -> Result {
         write!(formatter, r#"
 [+] Workers:
     [*] name: {}
     [*] number of workers: {}
-    [*] tasks:
-        [*] remaining: ???
-        [*] names: [???]
-        [*] priority: [???]
         "#,
-        self.descriptor.name.as_ref().unwrap_or(&String::from("???")),
+        self.descriptor.name,
         self.descriptor.amount)
+    }
+}
+
+/// Provide a debug function for the Worker.
+impl Debug for Worker {
+    fn fmt(&self, formatter: &mut Formatter) -> Result {
+        write!(formatter, r#"
+[+] Worker:
+    [*] id: {}
+        "#,
+        self.id)
     }
 }

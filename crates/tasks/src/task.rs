@@ -1,4 +1,4 @@
-use crate::priority::Priority;
+use std::fmt::{Debug, Result, Formatter};
 
 /// A trait to execute a work load or task.
 pub trait Executable {
@@ -10,9 +10,6 @@ pub trait Executable {
 pub struct Task<T> where 
     T: Fn() + Sized + Sync
 {
-    /// A variable which contains the priority of the task.
-    priority: Priority,
-    
     /// A variable which contains the callback to be executed.
     callback: T,
 
@@ -30,9 +27,8 @@ impl<T> Task<T> where
     /// 
     /// `priority` - The priority of the task.
     /// `callback` - The work to get done
-    pub fn new(priority: Priority, callback: T) -> Self {
+    pub fn new(callback: T) -> Self {
         Self {
-            priority,
             callback,
             name: None
         }
@@ -46,12 +42,10 @@ impl<T> Task<T> where
     /// `callback` - The work to get done.
     /// `name` - The debug name used to track the task.
     pub fn new_debug(
-        priority: Priority,
         callback: T,
         name: String) -> Self {
         
         Self {
-            priority,
             callback,
             name: Some(name)    
         }
@@ -65,5 +59,17 @@ impl<T> Executable for Task<T> where
     /// Executes the current `Task`.
     fn execute(&self) {
        (self.callback)(); 
+    }
+}
+
+/// Provide a debug function for the `Task`.
+impl<T> Debug for Task<T> where
+    T: Fn() + Send + Sync {
+    fn fmt(&self, formatter: &mut Formatter) -> Result {
+        write!(formatter, r#"
+[+] Worker:
+    [*] id: {}
+        "#,
+        self.name.as_ref().unwrap_or(&"".to_string()))
     }
 }

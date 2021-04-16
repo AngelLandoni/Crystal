@@ -1,2 +1,7 @@
+debug/
 /target
+crates/tasks/target
+crates/ecs/target
+
 Cargo.lock
+**/*.rs.bk
