@@ -1,6 +1,6 @@
 use std::{
     sync::Arc,
-    thread::{JoinHandle, Builder},
+    thread::{JoinHandle, Builder, yield_now},
     fmt::{Debug, Result, Formatter},
 };
 
@@ -165,8 +165,7 @@ fn worker_loop(
             if let Some(task) = t_queue.pop() {
                 task.execute();
             } else {
-                // Go to sleep here.
-                // TODO(Angel): Finish this.
+                yield_now();
             } 
         }
     }) {
