@@ -1,7 +1,8 @@
 use std::{
     iter,
     any::TypeId,
-    sync::{Arc, RwLock}
+    sync::{Arc, RwLock},
+    fmt::{Debug, Result, Formatter},
 };
 
 use fxhash::FxHashMap;
@@ -14,7 +15,7 @@ use crate::{
 /// Provides an aftraction to handle components.
 pub trait ComponentsHandler {
     /// An aftraction used to add a new component into the storage.
-    fn add_component<A: 'static + AnyStorage>(
+    fn add_component<A: 'static + AnyStorage + Send + Sync>(
         &self,
         entity: Entity,
         ids: (TypeId, ),
@@ -24,7 +25,7 @@ pub trait ComponentsHandler {
 /// Defines a data type that is a reference to the storage, that 
 /// reference is thread safe and also implement a Readers and Writers
 /// lock.
-type ComponentRef = Option<Arc<RwLock<dyn AnyStorage>>>;
+type ComponentRef = Option<Arc<RwLock<dyn AnyStorage + Send + Sync>>>;
 
 /// Defines the data structure where the components will be stored.
 /// 
@@ -68,7 +69,7 @@ impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
     /// `entity` - The entity which owns the component.
     /// `ids` - The runtime representation of the provided components.
     /// `components` - The components itself.
-    fn add_component<A: 'static + AnyStorage>(
+    fn add_component<A: 'static + AnyStorage + Send + Sync>(
         &self,
         entity: Entity,
         ids: (TypeId, ),
@@ -105,12 +106,20 @@ impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
             // Insert the component in the `Entity` spot.
             new_vec[entity.id] = Some(Arc::new(RwLock::new(component.0)));
 
-            // Deadlock?.
-
             // Take a write of the hash map and generate a new 
             // content.
             let mut c_writer = self.components.write().unwrap();
             c_writer.insert(ids.0, Arc::new(RwLock::new(new_vec)));
         }
+    }
+}
+
+impl<const N: usize> Debug for ComponentsStorage<N> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result {
+        let s_reader = self.components.read().unwrap();
+        write!(
+            formatter, "number of components: {:?}",
+            s_reader.keys().len()
+        )
     }
 }

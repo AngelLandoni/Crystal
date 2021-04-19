@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{
+    fmt::{Debug, Result, Formatter},
+    sync::atomic::{AtomicUsize, Ordering}
+};
 
 use crate::{
     bundle::ComponentBundler,
@@ -67,5 +70,15 @@ impl<H: ComponentsHandler> EntityHandler for World<H> {
 
     fn remove_entity(&mut self, entity: Entity) {
 
+    }
+}
+
+impl<H: ComponentsHandler + Debug> Debug for World<H> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result {
+        write!(
+            formatter, "number of entities: {:?} | {:?}",
+            self.number_of_entities,
+            self.storage
+        )
     }
 }

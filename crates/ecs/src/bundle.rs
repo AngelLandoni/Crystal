@@ -16,7 +16,7 @@ pub trait ComponentBundler {
         handler: &H);
 }
 
-impl<T: 'static> ComponentBundler for (T, ) {
+impl<T: 'static + Send + Sync> ComponentBundler for (T, ) {
     /// Adds a new component for the provided `Entity`.
     /// 
     /// # Arguments
