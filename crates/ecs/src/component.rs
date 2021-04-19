@@ -73,17 +73,31 @@ impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
         ids: (TypeId, ),
         component: (A, )) {
         // Take a read lock and check if the component buffer exist.
-        let components = self.components.read().unwrap();
+        let c_reader = self.components.read().unwrap();
 
         // Check if the key exists, if it does take a reference to the
         // buffer and write over it.
-        if let Some(component_buffer) = components.get(&ids.0) {
+        if let Some(component_buffer) = c_reader.get(&ids.0) {
             // Get a reference to the buffer.
             let buffer: ComponentBuffer = component_buffer.clone();
             // Get write lock for the vector. 
-            let mut b_writter = buffer.write().unwrap();
+            let mut b_writer = buffer.write().unwrap();
             // Replace the current component with a new one. 
-            b_writter[entity.id] = Arc::new(RwLock::new(component.0));
+            b_writer[entity.id] = Arc::new(RwLock::new(component.0));
+        } else {
+            // At this point we need create a new component buffer
+            // due it does not exist.
+            let mut new_vec: Vec<ComponentRef> = Vec::with_capacity(N);
+            unsafe { new_vec.set_len(N); }
+            // Insert the component in the `Entity` spot.
+            new_vec[entity.id] = Arc::new(RwLock::new(component.0));
+
+            // Deadlock?.
+
+            // Take a write of the hash map and generate a new 
+            // content.
+            let mut c_writer = self.components.write().unwrap();
+            c_writer.insert(ids.0, Arc::new(RwLock::new(new_vec)));
         }
     }
 }
