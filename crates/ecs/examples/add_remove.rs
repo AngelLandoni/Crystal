@@ -8,4 +8,15 @@ fn main() {
 
     // Adds a new entity into the world.
     world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
+    world.add_entity((IsPlayer, ));
 }
