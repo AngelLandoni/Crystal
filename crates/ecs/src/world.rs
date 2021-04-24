@@ -4,8 +4,13 @@ use std::{
 };
 
 use crate::{
+    type_id::id_of,
     bundle::ComponentBundler,
-    component::{ComponentsHandler, ComponentsStorage},
+    component::{
+        ComponentsHandler,
+        ComponentHandler,
+        ComponentsStorage
+    },
     entity::{Entity, EntityHandler},
 };
 
@@ -57,7 +62,8 @@ impl<H: ComponentsHandler> EntityHandler for World<H> {
         // of not used entities.
         let id = self.number_of_entities.fetch_add(
             1,
-            Ordering::SeqCst);
+            Ordering::SeqCst
+        );
 
         // Create a new entity using the thread safe id.
         let entity = Entity::new(id);
@@ -70,6 +76,16 @@ impl<H: ComponentsHandler> EntityHandler for World<H> {
 
     fn remove_entity(&mut self, entity: Entity) {
 
+    }
+}
+
+impl<H: ComponentsHandler> ComponentHandler for World<H> {
+    /// Registers a new component into the system.
+    fn register<C0: 'static>(&self) {
+        // Generate an unique id for the component.
+        let id = id_of::<C0>();
+        // Register the component.
+        self.storage.register(id);
     }
 }
 

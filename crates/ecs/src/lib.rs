@@ -1,7 +1,9 @@
 mod type_id;
 mod storage;
 mod bundle;
+
 mod component;
+pub use component::ComponentHandler;
 
 mod world;
 pub use world::{World, DefaultWorld};

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use ecs::{DefaultWorld, EntityHandler};
+use ecs::{DefaultWorld, EntityHandler, ComponentHandler};
 use tasks::{Workers, Task, Dispatcher, Executable};
 
 struct Health(u32);
@@ -8,6 +8,9 @@ struct IsPlayer;
 
 fn main() {
     let world = Arc::new(DefaultWorld::default());
+
+    world.register::<IsPlayer>();
+    world.register::<Health>();
 
     // Create a new worker pool.
     let mut workers: Workers = Workers::default();
