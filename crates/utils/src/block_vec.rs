@@ -1,4 +1,7 @@
-use std::iter;
+use std::{
+    sync::{Arc, RwLock, RwLockWriteGuard},
+    iter
+};
 
 /// A list of vectors which allow access any index (except negatives).
 /// 
@@ -38,19 +41,24 @@ impl<T, const N: usize> BlockVec<T, N> {
     ///
     /// `item` - The item to be inserted.
     /// `index` - The position of the element. 
-    pub fn set(&mut self, item: T, index: usize) {
+    pub fn set(&mut self, item: T, index: usize) -> bool {
+        let mut was_expanded: bool = false;
+
         // Get the block based on the index.
         let block_index = Self::block_for_index(index);
 
         // Check if the index is out of range, if it is it has to 
         // expand to be able to contain the index.
         if block_index > self.blocks.len() - 1 {
-            self.append_empty_blocks(block_index); 
+            self.append_empty_blocks(block_index);
+            was_expanded = true;
         }
     
         // Set the value in the correct place.
         let corrected_index = Self::corrected_index(index); 
         self.blocks[block_index][corrected_index] = Some(item);
+
+        was_expanded
     }
 
     /// Returns the element associated with the key.

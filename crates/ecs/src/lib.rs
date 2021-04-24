@@ -10,3 +10,4 @@ mod entity;
 pub use entity::{Entity, EntityHandler};
 
 extern crate fxhash;
+#[macro_use] extern crate guard;

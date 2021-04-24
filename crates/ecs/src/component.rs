@@ -1,11 +1,13 @@
 use std::{
     iter,
     any::TypeId,
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, RwLockWriteGuard},
     fmt::{Debug, Result, Formatter},
 };
 
 use fxhash::FxHashMap;
+
+use utils::{BlockVec, sync_mem_to_biggest};
 
 use crate::{
     storage::AnyStorage,
@@ -25,13 +27,13 @@ pub trait ComponentsHandler {
 /// Defines a data type that is a reference to the storage, that 
 /// reference is thread safe and also implement a Readers and Writers
 /// lock.
-type ComponentRef = Option<Arc<RwLock<dyn AnyStorage + Send + Sync>>>;
+type ComponentRef = Arc<RwLock<dyn AnyStorage + Send + Sync>>;
 
 /// Defines the data structure where the components will be stored.
 /// 
 /// The reference to the Vec must be protected due two or more thread
 /// could potentially modify the same index at the same time.
-type ComponentBuffer = Arc<RwLock<Vec<ComponentRef>>>;
+type ComponentBuffer = Arc<RwLock<BlockVec::<ComponentRef, 400>>>;
 
 /// Provides an aftraction to store all the components in the ECS.
 pub struct ComponentsStorage<const N: usize> {
@@ -74,42 +76,74 @@ impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
         entity: Entity,
         ids: (TypeId, ),
         component: (A, )) {
-        // Take a read lock and check if the component buffer exist.
-        let c_reader = self.components.read().unwrap();
+        // Determines if some of the buffers grow.
+        let mut were_expansions: bool = false;
 
-        // Check if the key exists, if it does take a reference to the
-        // buffer and write over it.
-        if let Some(component_buffer) = c_reader.get(&ids.0) {
-            // TODO(Angel): Expand the array if it needs more space.
+        // In order to avoid a deadlock we must drop first the
+        // lock on the reader before sync the buffers (c_reader, b_writer).
+        {
+            // Take a read lock and check if the component buffer exist.
+            let c_reader = self.components.read().unwrap();
 
-            // Get a reference to the buffer.
-            let buffer: ComponentBuffer = component_buffer.clone();
-            // Get write lock for the vector. 
+            // Check if the buffer exist if not just panic.
+            guard!(let Some(c_buffer) = c_reader.get(&ids.0) else {
+                // The component does not exist, panic an error.
+                panic!("The component {:?} is not registered", ids.0);
+            });
+
+            // Get a reference and write lock to the buffer.
+            let buffer: ComponentBuffer = c_buffer.clone();
             let mut b_writer = buffer.write().unwrap();
+
             // Replace the current component with a new one.
-            // TODO(Angel): Maybe RwLock is not needed here not sure
-            // I gonna handle the mut on the future.
-            b_writer[entity.id] = Some(Arc::new(RwLock::new(component.0)));
-        } else {
-            // In order to avoid a deadlock we must drop first the
-            // lock on the reader.
-            drop(c_reader);
-            // At this point we need create a new component buffer
-            // due it does not exist.
+            were_expansions |= b_writer.set(
+                Arc::new(RwLock::new(component.0)),
+                entity.id
+            );
+        }
 
-            // TODO(Angel): N should not be N should be the current size
-            // of the needed vector, due a new component could be added
-            // in the middle of the execution and that vec should have the 
-            // same size as the others.
-            let mut new_vec: Vec<ComponentRef> = 
-                iter::repeat(None).take(N).collect();
-            // Insert the component in the `Entity` spot.
-            new_vec[entity.id] = Some(Arc::new(RwLock::new(component.0)));
+        // Increate memory of the buffers matching the biggest only
+        // if some buffer was expanded.
+        if were_expansions {
+            self.sync_buffers();
+        }
+    }
+}
 
-            // Take a write of the hash map and generate a new 
-            // content.
-            let mut c_writer = self.components.write().unwrap();
-            c_writer.insert(ids.0, Arc::new(RwLock::new(new_vec)));
+impl<const N: usize> ComponentsStorage<N> {
+    fn sync_buffers<'a>(&self) {
+        // Get a writer over components in order to avoid 
+        // modifications in the buffers sizes in the middle of the 
+        // expansion.
+        let c_writer = self.components.write().unwrap();
+
+        // Create an vector to store all the write locks.
+        let mut writers = Vec::new();
+
+        // Get lock for all the buffers.
+        for (_, value) in c_writer.iter() {
+            let w = value.write().unwrap();
+            writers.push(w);
+        }
+
+        // Contains a raw ref to all the blocks, this is safe due
+        // we lock all the buffers before, so we have exclusive 
+        // access.
+         let mut biggest: usize = 0;
+    
+        // Search for the biggest.
+        for w in writers.iter() {
+            // Check if the current temp is smaller than the new value.
+            if biggest < w.blocks_len() {
+                biggest = w.blocks_len();
+                continue;
+            }
+        }
+
+        // Expand the vectors to have the corrent number of blocks.
+        for w in writers.iter_mut() {
+            let len = w.blocks_len();
+            w.append_empty_blocks(biggest - len);
         }
     }
 }
@@ -123,3 +157,26 @@ impl<const N: usize> Debug for ComponentsStorage<N> {
         )
     }
 }
+
+
+/*else {
+            // At this point we need create a new component buffer
+            // due it does not exist.
+            let mut new_vec = BlockVec::<ComponentRef, 400>::new();
+            new_vec.set(
+                Some(Arc::new(RwLock::new(component.0))),
+                entity.id
+            );
+
+            // In order to avoid a deadlock we must drop first the
+            // lock on the reader.
+            drop(c_reader);
+            // Take a write of the hash map and generate a new 
+            // content.
+            let mut c_writer = self.components.write().unwrap();
+            c_writer.insert(ids.0, Arc::new(RwLock::new(new_vec)));
+           
+            drop(c_writer);
+            // Increate memory of the buffers matching the biggest.
+            self.sync_buffers();
+        }*/
