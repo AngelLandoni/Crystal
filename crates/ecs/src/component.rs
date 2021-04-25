@@ -5,6 +5,7 @@ use std::{
 };
 
 use fxhash::FxHashMap;
+use paste::paste;
 
 use utils::{BlockVec};
 
@@ -12,6 +13,75 @@ use crate::{
     storage::AnyStorage,
     entity::Entity
 };
+
+macro_rules! generate_add_component_trait {
+    ($name: tt; $([$type: ident, $id: ident]),+) => {
+        paste! {
+            fn [<add_component $name>]<
+                $($type: 'static + AnyStorage + Send + Sync,)+
+            >(
+                &self,
+                entity: Entity,
+                ids: ($($id,)+ ),
+                component: ($($type,)+ )); 
+        }
+    };
+}
+
+macro_rules! generate_add_component {
+    ($name: tt; $([$type: ident, $id: ident, $index: tt]),+) => {
+        paste! {
+            fn [<add_component $name>]<
+                $($type: 'static + AnyStorage + Send + Sync,)+
+            >(
+                &self,
+                entity: Entity,
+                ids: ($($id,)+ ),
+                component: ($($type,)+ )) {
+
+    // Determines if some of the buffers grow.
+    let mut were_expansions: bool = false;
+
+    // In order to avoid a deadlock we must drop first the
+    // lock on the reader before sync the buffers (c_reader, b_writer).
+    {
+        // Take a read lock and check if the component buffer exist.
+        let c_reader = self.components.read().unwrap();
+
+        $(
+            // Check if the buffer exist if not just panic.
+            guard!(let Some(c_buffer) = c_reader.get(&ids.$index) else {
+                // The component does not exist, panic an error.
+                panic!(
+                    "The component {:?} is not registered",
+                    type_name::<$type>()
+                );
+            });
+
+            {
+                // Get a reference and write lock to the buffer.
+                let buffer: ComponentBuffer<N> = c_buffer.clone();
+                let mut b_writer = buffer.write().unwrap();
+
+                // Replace the current component with a new one.
+                were_expansions |= b_writer.set(
+                    Arc::new(RwLock::new(component.$index)),
+                    entity.id
+                );
+            }
+        )+
+    }
+
+    // Increate memory of the buffers matching the biggest only
+    // if some buffer was expanded.
+    if were_expansions {
+        self.sync_buffers();
+    }
+
+                }
+        }
+    };
+}
 
 pub trait ComponentHandler {
     /// An aftraction used to register one component.
@@ -29,6 +99,15 @@ pub trait ComponentsHandler {
         entity: Entity,
         ids: (TypeId, ),
         component: (A, ));
+
+    generate_add_component_trait!(2; [A, TypeId], [B, TypeId]);
+    generate_add_component_trait!(3; [A, TypeId], [B, TypeId], [C, TypeId]);
+    generate_add_component_trait!(4; [A, TypeId], [B, TypeId], [C, TypeId], [D, TypeId]);
+    generate_add_component_trait!(5; [A, TypeId], [B, TypeId], [C, TypeId], [D, TypeId], [E, TypeId]);
+    generate_add_component_trait!(6; [A, TypeId], [B, TypeId], [C, TypeId], [D, TypeId], [E, TypeId], [F, TypeId]);
+    generate_add_component_trait!(7; [A, TypeId], [B, TypeId], [C, TypeId], [D, TypeId], [E, TypeId], [F, TypeId], [G, TypeId]);
+    generate_add_component_trait!(8; [A, TypeId], [B, TypeId], [C, TypeId], [D, TypeId], [E, TypeId], [F, TypeId], [G, TypeId], [H, TypeId]);
+    generate_add_component_trait!(9; [A, TypeId], [B, TypeId], [C, TypeId], [D, TypeId], [E, TypeId], [F, TypeId], [G, TypeId], [H, TypeId], [I, TypeId]);
 }
 
 /// Defines a data type that is a reference to the storage, that 
@@ -136,6 +215,15 @@ impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
             self.sync_buffers();
         }
     }
+
+    generate_add_component!(2; [A, TypeId, 0], [B, TypeId, 1]);
+    generate_add_component!(3; [A, TypeId, 0], [B, TypeId, 1], [C, TypeId, 2]);
+    generate_add_component!(4; [A, TypeId, 0], [B, TypeId, 1], [C, TypeId, 2], [D, TypeId, 3]);
+    generate_add_component!(5; [A, TypeId, 0], [B, TypeId, 1], [C, TypeId, 2], [D, TypeId, 3], [E, TypeId, 4]);
+    generate_add_component!(6; [A, TypeId, 0], [B, TypeId, 1], [C, TypeId, 2], [D, TypeId, 3], [E, TypeId, 4], [F, TypeId, 5]);
+    generate_add_component!(7; [A, TypeId, 0], [B, TypeId, 1], [C, TypeId, 2], [D, TypeId, 3], [E, TypeId, 4], [F, TypeId, 5], [G, TypeId, 6]);
+    generate_add_component!(8; [A, TypeId, 0], [B, TypeId, 1], [C, TypeId, 2], [D, TypeId, 3], [E, TypeId, 4], [F, TypeId, 5], [G, TypeId, 6], [H, TypeId, 7]);
+    generate_add_component!(9; [A, TypeId, 0], [B, TypeId, 1], [C, TypeId, 2], [D, TypeId, 3], [E, TypeId, 4], [F, TypeId, 5], [G, TypeId, 6], [H, TypeId, 7], [I, TypeId, 8]);
 }
 
 impl<const N: usize> ComponentsStorage<N> {
@@ -185,3 +273,4 @@ impl<const N: usize> Debug for ComponentsStorage<N> {
         )
     }
 }
+
