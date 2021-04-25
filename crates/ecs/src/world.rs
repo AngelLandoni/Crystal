@@ -19,7 +19,7 @@ use crate::{
 /// 
 /// To calculate the needed space, PAGE_ENTITY_SIZE * number of pages
 /// * number of components * size of a pointer.
-const PAGE_ENTITY_SIZE: usize = 5000;
+const PAGE_ENTITY_SIZE: usize = 400;
 type DefaultComponentsStorage = ComponentsStorage::<PAGE_ENTITY_SIZE>;
 
 /// Defines a default `World` wrapper.
