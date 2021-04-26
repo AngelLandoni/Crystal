@@ -8,7 +8,7 @@ pub trait EntityHandler {
         components: B) -> Entity;
 
     /// Defines an interface to delete entities.
-    fn remove_entity(&mut self, entity: Entity);
+    fn remove_entity(&self, entity: Entity);
 }
 
 /// Defines the size of the entities id.

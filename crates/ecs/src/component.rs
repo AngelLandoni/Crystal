@@ -11,7 +11,8 @@ use utils::{BlockVec};
 
 use crate::{
     storage::AnyStorage,
-    entity::Entity
+    entity::Entity,
+    consts::BitmaskType
 };
 
 macro_rules! generate_add_component_trait {
@@ -85,13 +86,13 @@ macro_rules! generate_add_component {
 
 pub trait ComponentHandler {
     /// An aftraction used to register one component.
-    fn register<C0: 'static>(&self);
+    fn register<C0: 'static>(&mut self);
 }
 
 /// Provides an aftraction to handle components.
 pub trait ComponentsHandler {
     /// An aftraction used to register components.
-    fn register(&self, c0: TypeId);
+    fn register(&self, c0: TypeId, bitmask_shift: u8);
 
     /// An aftraction used to add a new component into the storage.
     fn add_component<A: 'static + AnyStorage + Send + Sync>(
@@ -99,6 +100,9 @@ pub trait ComponentsHandler {
         entity: Entity,
         ids: (TypeId, ),
         component: (A, ));
+
+    /// An aftraction used to get the associated bitmask.
+    fn bitmask(&self, type_id: TypeId) -> BitmaskType;
 
     generate_add_component_trait!(2; [A, TypeId], [B, TypeId]);
     generate_add_component_trait!(3; [A, TypeId], [B, TypeId], [C, TypeId]);
@@ -125,7 +129,10 @@ type ComponentBuffer<const N: usize> =
 /// Provides an aftraction to store all the components in the ECS.
 pub struct ComponentsStorage<const N: usize> {
     /// Contains all the components in the ECS.
-    components: RwLock<FxHashMap<TypeId, ComponentBuffer<N>>>
+    components: RwLock<FxHashMap<TypeId, ComponentBuffer<N>>>,
+
+    /// Contains all the bitmasks of the components.
+    bitmasks: RwLock<FxHashMap<TypeId, u8>>
 }
 
 /// Provides default initialization for `ComponentsStorage`.
@@ -134,22 +141,26 @@ impl<const N: usize> Default for ComponentsStorage<N> {
     /// configuration.
     fn default() -> Self {
         Self {
-            components: RwLock::new(FxHashMap::default())
+            components: RwLock::new(FxHashMap::default()),
+            bitmasks: RwLock::new(FxHashMap::default())
         }
     }
 }
 
 impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
     /// Registers a component into the `World`.
-    fn register(&self, c0: TypeId) { 
+    fn register(&self, c0: TypeId, bitmask_shift: u8) { 
         {
             // Get exclusive access to the map.
             let mut c_write = self.components.write().unwrap();
+            let mut bitmask_c_write = self.bitmasks.write().unwrap();
             // At this point we need create a new component buffer
             // due it does not exist.
             let new_vec = BlockVec::<ComponentRef, N>::new();
-            // Insed the new buffer associated with the correct id.
+            // Insert the new buffer associated with the correct id.
             c_write.insert(c0, Arc::new(RwLock::new(new_vec)));
+            // Insert the bitmask shift for the component. 
+            bitmask_c_write.insert(c0, bitmask_shift);
         }
 
         // Sync buffers, this could happen if the component is added
@@ -214,6 +225,25 @@ impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
         if were_expansions {
             self.sync_buffers();
         }
+    }
+
+    /// Returns the associated bitmask for the `TypeId`.
+    ///
+    /// # Arguments
+    ///
+    /// `type_id` - The id used to extract the bitmask.
+    fn bitmask(&self, type_id: TypeId) -> BitmaskType {
+        // Get read over the bitmasks.
+        let b_reader = self.bitmasks.read().unwrap();
+        
+        // Extract the bitmask if not presset just crash.
+        // This should never fail.
+        guard!(let Some(shift) = b_reader.get(&type_id) else {
+            panic!("The component with id {:?} does not have bitmask", type_id);
+        });
+
+        // Generate the bitmask shifting a binary 1 `shift` times.
+        0b1 << shift 
     }
 
     generate_add_component!(2; [A, TypeId, 0], [B, TypeId, 1]);

@@ -1,6 +1,7 @@
 mod type_id;
 mod storage;
 mod bundle;
+mod consts;
 
 mod component;
 pub use component::ComponentHandler;

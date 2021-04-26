@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use ecs::{DefaultWorld, EntityHandler, ComponentHandler};
 use tasks::{Workers, Task, Dispatcher, Executable};
@@ -8,11 +8,13 @@ struct Commander;
 struct IsPlayer;
 
 fn main() {
-    let world = Arc::new(DefaultWorld::default());
+    let mut world = DefaultWorld::default();
 
     world.register::<IsPlayer>();
     world.register::<Commander>();
     world.register::<Health>();
+
+    let shared_world = Arc::new(world);
 
     // Create a new worker pool.
     let mut workers: Workers = Workers::default();
@@ -23,14 +25,14 @@ fn main() {
     loop {
         let mut vec: Vec<Box<dyn Executable + Send>> = Vec::new();
         for i in 1..50 {
-            let c_world = world.clone();
+            let c_world = shared_world.clone();
             vec.push(Box::new(Task::new(move || {
-                c_world.add_entity((IsPlayer, Commander, Health(123)));
+                c_world.add_entity((IsPlayer, Health(123)));
             })));
         }
         workers.execute_batch(vec);
 
-        println!("Debug: {:?}", world);
+        println!("Debug: {:?}", shared_world);
         std::thread::sleep(std::time::Duration::from_millis(1600));
     }
 }

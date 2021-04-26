@@ -26,14 +26,16 @@ type DefaultComponentsStorage = ComponentsStorage::<PAGE_ENTITY_SIZE>;
 pub type DefaultWorld = World<DefaultComponentsStorage>;
 
 /// TODO(Angel): Entity pool.
-/// TODO(Angel): Entity bitmask.
 pub struct World<H: ComponentsHandler> {
     /// Contains the components storage handler, used to store and 
     /// manage all the components in the `World`.
     storage: H,
     
     /// Contains a counter of the amount of ids in the `World`. 
-    number_of_entities: AtomicUsize
+    number_of_entities: AtomicUsize,
+
+    /// Contains a counter of the ampunt of components in the `World`.
+    number_of_components: AtomicUsize
 }
 
 impl Default for World<DefaultComponentsStorage> {
@@ -42,7 +44,8 @@ impl Default for World<DefaultComponentsStorage> {
     fn default() -> Self {
         Self {
             storage: DefaultComponentsStorage::default(),
-            number_of_entities: AtomicUsize::new(0)
+            number_of_entities: AtomicUsize::new(0),
+            number_of_components: AtomicUsize::new(0)
         }
     }
 }
@@ -69,23 +72,34 @@ impl<H: ComponentsHandler> EntityHandler for World<H> {
         let entity = Entity::new(id);
 
         // Add all the components to the entity.
-        components.add_components(entity, &self.storage);
+        let bitmask = components.add_components(entity, &self.storage);
         
+        println!("Bitmask {:b}", bitmask);
+
         entity
     }
 
-    fn remove_entity(&mut self, entity: Entity) {
-
+    /// Removes an entity from the `World`.
+    /// 
+    /// # Arguments
+    /// 
+    /// `entity` - The entity to be deleted.
+    fn remove_entity(&self, entity: Entity) {
+        
     }
 }
 
 impl<H: ComponentsHandler> ComponentHandler for World<H> {
     /// Registers a new component into the system.
-    fn register<C0: 'static>(&self) {
+    fn register<C0: 'static>(&mut self) {
         // Generate an unique id for the component.
         let id = id_of::<C0>();
+        let bitmask_shift: usize = self.number_of_components.fetch_add(
+            1,
+            Ordering::SeqCst
+        );
         // Register the component.
-        self.storage.register(id);
+        self.storage.register(id, bitmask_shift as u8);
     }
 }
 

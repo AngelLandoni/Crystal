@@ -6,7 +6,8 @@ use crate::{
     type_id::id_of,
     component::ComponentsHandler,
     entity::Entity,
-    storage::Storage
+    storage::Storage,
+    consts::BitmaskType
 };
 
 /// Provides an aftraction used to add components into a handler.
@@ -15,7 +16,7 @@ pub trait ComponentBundler {
     fn add_components<Z: ComponentsHandler>(
         self,
         entity: Entity,
-        handler: &Z);
+        handler: &Z) -> BitmaskType;
 }
 
 impl<T: 'static + Send + Sync> ComponentBundler for (T, ) {
@@ -28,7 +29,7 @@ impl<T: 'static + Send + Sync> ComponentBundler for (T, ) {
     fn add_components<Z: ComponentsHandler>(
         self,
         entity: Entity,
-        handler: &Z) {
+        handler: &Z) -> BitmaskType {
 
         // Get the type id of the first element in the tuple.
         let a_id: TypeId = id_of::<T>();
@@ -37,6 +38,9 @@ impl<T: 'static + Send + Sync> ComponentBundler for (T, ) {
 
         // Send the component to the handler.
         handler.add_component(entity, (a_id, ), (a_storage, ));
+    
+        // Generate the bitmask.
+        handler.bitmask(a_id) 
     }
 }
 
@@ -47,7 +51,7 @@ macro_rules! generate_bundle {
         > ComponentBundler for ($($type), +) {
             fn add_components<
                 Z: ComponentsHandler
-            >(self, entity: Entity, handler: &Z) {
+            >(self, entity: Entity, handler: &Z) -> BitmaskType {
                 paste! {
                     handler.[<add_component $name>](
                         entity,
@@ -55,6 +59,13 @@ macro_rules! generate_bundle {
                         ($(Storage::new(self.$index),)+)
                     )
                 }
+
+                // In order to avoid the last & (not sure how to get ride of
+                // it) we use a constant with all 1 to avoid any change
+                // over the real bitmask.
+                $(
+                    handler.bitmask(id_of::<$type>()) |
+                )+ 0x0
             }
         }
     };
