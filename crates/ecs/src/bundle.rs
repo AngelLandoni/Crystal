@@ -17,6 +17,9 @@ pub trait ComponentBundler {
         self,
         entity: Entity,
         handler: &Z) -> BitmaskType;
+
+    /// An aftraction used to return the number of component in the bundle.
+    fn len(&self) -> usize;
 }
 
 impl<T: 'static + Send + Sync> ComponentBundler for (T, ) {
@@ -42,6 +45,9 @@ impl<T: 'static + Send + Sync> ComponentBundler for (T, ) {
         // Generate the bitmask.
         handler.bitmask(a_id) 
     }
+
+    /// Returns the number of components.
+    fn len(&self) -> usize { 1 }
 }
 
 macro_rules! generate_bundle {
@@ -66,6 +72,10 @@ macro_rules! generate_bundle {
                 $(
                     handler.bitmask(id_of::<$type>()) |
                 )+ 0x0
+            }
+
+            fn len(&self) -> usize {
+                $name
             }
         }
     };

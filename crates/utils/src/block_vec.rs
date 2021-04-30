@@ -49,7 +49,7 @@ impl<T, const N: usize> BlockVec<T, N> {
 
         // Check if the index is out of range, if it is it has to 
         // expand to be able to contain the index.
-        if block_index > self.blocks.len() - 1 {
+        if block_index > self.blocks_len() - 1 {
             self.append_empty_blocks(block_index);
             was_expanded = true;
         }
@@ -78,6 +78,25 @@ impl<T, const N: usize> BlockVec<T, N> {
 
         // Return a reference to the element.
         &self.blocks[block_index][corrected_index] 
+    }
+
+    /// Returns the element if it is inside the bounds if not returns
+    /// an error.
+    ///
+    /// `index` - The index of the element to be returned.
+    pub fn get_inbouds(&self, index: usize) -> Result<&Option<T>, ()> {
+        // Get the bloc based on the index.
+        let block_index = Self::block_for_index(index);
+        let corrected_index = Self::corrected_index(index);
+
+        // If the index is out of the blocks return none.
+        if block_index > self.blocks_len() - 1 {
+            // Return out of bounds.:
+            return Err(());
+        }
+
+        // Return a reference to the element.
+        Ok(&self.blocks[block_index][corrected_index]) 
     }
 }
 

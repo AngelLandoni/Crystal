@@ -62,13 +62,27 @@ macro_rules! generate_add_component {
             {
                 // Get a reference and write lock to the buffer.
                 let buffer: ComponentBuffer<N> = c_buffer.clone();
-                let mut b_writer = buffer.write().unwrap();
+                let b_reader = buffer.read().unwrap();
 
-                // Replace the current component with a new one.
-                were_expansions |= b_writer.set(
-                    Arc::new(RwLock::new(component.$index)),
-                    entity.id
-                );
+                // Check if it can extract the item from the array.
+                if let Ok(item) = b_reader.get_inbouds(entity.id) {
+                    // If there is memory alrady allocated with a Lock, use
+                    // that.
+                    if let Some(item_lock) = item {
+                        // Get a write over that specific item.
+                        let mut i_writer = item_lock.write().unwrap();
+                        *i_writer = Some(Arc::new(RwLock::new(component.$index)))
+                    // Otherwise create a new entry. 
+                    } else {
+                        drop(b_reader);
+                        were_expansions |=
+                            self.add_new_component(&entity, &buffer, component.$index);
+                    }
+                } else {
+                    drop(b_reader);
+                    were_expansions |=
+                        self.add_new_component(&entity, &buffer, component.$index);
+                }
             }
         )+
     }
@@ -86,7 +100,7 @@ macro_rules! generate_add_component {
 
 pub trait ComponentHandler {
     /// An aftraction used to register one component.
-    fn register<C0: 'static>(&mut self);
+    fn register<C0: 'static>(&self);
 }
 
 /// Provides an aftraction to handle components.
@@ -104,6 +118,10 @@ pub trait ComponentsHandler {
     /// An aftraction used to get the associated bitmask.
     fn bitmask(&self, type_id: TypeId) -> BitmaskType;
 
+    /// An aftraction used to remove all the components associated with the
+    /// provided entity.
+    fn remove_components(&self, entity: &Entity); 
+
     generate_add_component_trait!(2; [A, TypeId], [B, TypeId]);
     generate_add_component_trait!(3; [A, TypeId], [B, TypeId], [C, TypeId]);
     generate_add_component_trait!(4; [A, TypeId], [B, TypeId], [C, TypeId], [D, TypeId]);
@@ -114,12 +132,14 @@ pub trait ComponentsHandler {
     generate_add_component_trait!(9; [A, TypeId], [B, TypeId], [C, TypeId], [D, TypeId], [E, TypeId], [F, TypeId], [G, TypeId], [H, TypeId], [I, TypeId]);
 }
 
-/// Defines a data type that is a reference to the storage, that 
-/// reference is thread safe and also implement a Readers and Writers
-/// lock.
-type ComponentRef = Arc<RwLock<dyn AnyStorage + Send + Sync>>;
+type Component = Option<Arc<RwLock<dyn AnyStorage + Send + Sync>>>;
+
+/// Defines a data type that is a reference to the storage.
+type ComponentRef = RwLock<Component>;
 
 /// Defines the data structure where the components will be stored.
+///
+/// RwLock necessary in order to avoid problem when the vec is expanded.
 /// 
 /// The reference to the Vec must be protected due two or more thread
 /// could potentially modify the same index at the same time.
@@ -132,7 +152,7 @@ pub struct ComponentsStorage<const N: usize> {
     components: RwLock<FxHashMap<TypeId, ComponentBuffer<N>>>,
 
     /// Contains all the bitmasks of the components.
-    bitmasks: RwLock<FxHashMap<TypeId, u8>>
+    bitmasks: RwLock<FxHashMap<TypeId, u8>>,
 }
 
 /// Provides default initialization for `ComponentsStorage`.
@@ -142,7 +162,7 @@ impl<const N: usize> Default for ComponentsStorage<N> {
     fn default() -> Self {
         Self {
             components: RwLock::new(FxHashMap::default()),
-            bitmasks: RwLock::new(FxHashMap::default())
+            bitmasks: RwLock::new(FxHashMap::default()),
         }
     }
 }
@@ -166,6 +186,29 @@ impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
         // Sync buffers, this could happen if the component is added
         // after entities.
         self.sync_buffers();        
+    }
+
+    /// Removes all the components associated with the provided entity.
+    ///
+    /// # Arguments
+    ///
+    /// `entity` - The entity's components to be removed.
+    fn remove_components(&self, entity: &Entity) {
+        // Take a read lock over the components.
+        let c_reader = self.components.read().unwrap();
+
+        // Iterate over each component and erase it.
+        // TODO(Angel): Maybe filter by bitmask?.
+        for (_, value) in c_reader.iter() {
+            let buffer = value.clone();
+            let b_reader = buffer.read().unwrap();
+
+            // Check if there is data in the block.
+            if let Some(item_ref) = b_reader.get(entity.id).clone() {
+                let mut ir_writer = item_ref.write().unwrap();
+                *ir_writer = None;
+            }
+        }
     }
 
     /// Adds a new component into the storage.
@@ -211,13 +254,27 @@ impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
 
             // Get a reference and write lock to the buffer.
             let buffer: ComponentBuffer<N> = c_buffer.clone();
-            let mut b_writer = buffer.write().unwrap();
+            let b_reader = buffer.read().unwrap();
 
-            // Replace the current component with a new one.
-            were_expansions |= b_writer.set(
-                Arc::new(RwLock::new(component.0)),
-                entity.id
-            );
+            // Check if it can extract the item from the array.
+            if let Ok(item) = b_reader.get_inbouds(entity.id) {
+                // If there is memory alrady allocated with a Lock, use
+                // that.
+                if let Some(item_lock) = item {
+                    // Get a write over that specific item.
+                    let mut i_writer = item_lock.write().unwrap();
+                    *i_writer = Some(Arc::new(RwLock::new(component.0)))
+                // Otherwise create a new entry. 
+                } else {
+                    drop(b_reader);
+                    were_expansions |= 
+                        self.add_new_component(&entity, &buffer, component.0);
+                }
+            } else {
+                drop(b_reader);
+                were_expansions |=
+                    self.add_new_component(&entity, &buffer, component.0);
+            }
         }
 
         // Increate memory of the buffers matching the biggest only
@@ -245,6 +302,8 @@ impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
         // Generate the bitmask shifting a binary 1 `shift` times.
         0b1 << shift 
     }
+
+
 
     generate_add_component!(2; [A, TypeId, 0], [B, TypeId, 1]);
     generate_add_component!(3; [A, TypeId, 0], [B, TypeId, 1], [C, TypeId, 2]);
@@ -291,6 +350,30 @@ impl<const N: usize> ComponentsStorage<N> {
             let len = w.blocks_len();
             w.append_empty_blocks(biggest - len);
         }
+    }
+
+    /// Adds a new component into the world.
+    ///
+    /// # Arguments
+    ///
+    /// `entity` - The component owner.
+    /// `buffer` - The information.
+    /// `components` - The component itself.
+    fn add_new_component<C: 'static + AnyStorage + Send + Sync>(
+        &self,
+        entity: &Entity,
+        buffer: &ComponentBuffer<N>,
+        component: C) -> bool {
+        
+        let mut b_writer = buffer.write().unwrap();
+        // If there are not items in that position we have to create
+        // a new one.
+
+        // Replace the current component with a new one.
+        b_writer.set(
+            RwLock::new(Some(Arc::new(RwLock::new(component)))),
+            entity.id
+        )
     }
 }
 

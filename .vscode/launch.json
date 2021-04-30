@@ -20,6 +20,19 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "[ECS] World add bitmask",
+            "args": [],
+            "program": "${workspaceFolder}/crates/ecs/target/debug/examples/bit_masks",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "sourceLanguages": ["rust"],
+            "sourceMap": {
+              "/rustc/*": "${env:HOME}/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "[Utils] Set get",
             "args": [],
             "program": "${workspaceFolder}/crates/utils/target/debug/examples/add_get",

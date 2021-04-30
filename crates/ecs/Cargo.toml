@@ -8,5 +8,6 @@ edition = "2018"
 fxhash = "0.2.1"
 guard = "0.5.1"
 paste = "1.0.5"
+crossbeam-queue = "0.3"
 tasks = { path="../tasks" }
 utils = { path="../utils" }
