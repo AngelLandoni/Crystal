@@ -24,7 +24,5 @@ fn main() {
     world.remove_entity(Entity::new(3));
 
     world.add_entity((IsEnemy,));
-
-    println!("fisnh");
 }
    

@@ -89,7 +89,6 @@ impl<H: ComponentsHandler, E: EntitiesHandler> EntityHandler for World<H, E> {
 
         // Register the bitmask for the given entity.
         self.entities_storage.register_bitmask(&entity, &bitmask);
-
         
         entity
     }
