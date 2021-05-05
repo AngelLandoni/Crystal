@@ -143,7 +143,7 @@ type ComponentRef = RwLock<Component>;
 /// 
 /// The reference to the Vec must be protected due two or more thread
 /// could potentially modify the same index at the same time.
-type ComponentBuffer<const N: usize> =
+pub(crate) type ComponentBuffer<const N: usize> =
     Arc<RwLock<BlockVec::<ComponentRef, N>>>;
 
 /// Provides an aftraction to store all the components in the ECS.

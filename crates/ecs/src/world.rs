@@ -13,7 +13,8 @@ use crate::{
         ComponentHandler,
         ComponentsStorage
     },
-    entity::{Entity, EntitiesHandler, EntitiesStorage, EntityHandler}
+    entity::{Entity, EntitiesHandler, EntitiesStorage, EntityHandler},
+    system::{System, SystemHandler}
 };
 
 /// Defines the size of the entities that should be reached to 
@@ -132,6 +133,14 @@ impl<H: ComponentsHandler, E: EntitiesHandler> World<H, E> {
 
         Entity::new(self.number_of_entities.fetch_add(1, Ordering::SeqCst)) 
    }  
+}
+
+/// Provides handy functions to handle the systems.
+impl<H: ComponentsHandler, E: EntitiesHandler> SystemHandler for World<H, E> {
+    fn run<B: ComponentBundler, S: System<B>>(&self, system: S) {
+        // This must by run in a worker thread.
+        system.run(&self.components_storage);
+    }
 }
 
 impl<H: ComponentsHandler + Debug, E: EntitiesHandler> Debug for World<H, E> {

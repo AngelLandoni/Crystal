@@ -1,7 +1,14 @@
 use std::sync::{Arc, RwLock};
 
-use ecs::{DefaultWorld, EntityHandler, ComponentHandler, Entity};
-use tasks::{Workers, Task, Dispatcher, Executable};
+use ecs::{
+    DefaultWorld,
+    EntityHandler,
+    ComponentHandler,
+    Entity,
+    SystemHandler,
+    Read,
+    Write
+};
 
 struct Health(u32);
 struct Commander;
@@ -24,5 +31,11 @@ fn main() {
     world.remove_entity(Entity::new(3));
 
     world.add_entity((IsEnemy,));
+
+    world.run(do_nothing);
+}
+
+fn do_nothing(healths: Read<Health>) {
+    println!("Doing nothing");
 }
    
