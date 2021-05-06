@@ -104,7 +104,7 @@ pub trait ComponentHandler {
 }
 
 /// Provides an aftraction to handle components.
-pub trait ComponentsHandler {
+pub trait ComponentsHandler<const N: usize> {
     /// An aftraction used to register components.
     fn register(&self, c0: TypeId, bitmask_shift: u8);
 
@@ -118,9 +118,12 @@ pub trait ComponentsHandler {
     /// An aftraction used to get the associated bitmask.
     fn bitmask(&self, type_id: TypeId) -> BitmaskType;
 
+    /// An aftraction used to return the component buffer for a specific type.
+    fn component_buffer(&self, type_id: &TypeId) -> Option<ComponentBuffer<N>>;
+
     /// An aftraction used to remove all the components associated with the
     /// provided entity.
-    fn remove_components(&self, entity: &Entity); 
+    fn remove_components(&self, entity: &Entity);
 
     generate_add_component_trait!(2; [A, TypeId], [B, TypeId]);
     generate_add_component_trait!(3; [A, TypeId], [B, TypeId], [C, TypeId]);
@@ -167,7 +170,7 @@ impl<const N: usize> Default for ComponentsStorage<N> {
     }
 }
 
-impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
+impl<const N: usize> ComponentsHandler<N> for ComponentsStorage<N> {
     /// Registers a component into the `World`.
     fn register(&self, c0: TypeId, bitmask_shift: u8) { 
         {
@@ -303,7 +306,19 @@ impl<const N: usize> ComponentsHandler for ComponentsStorage<N> {
         0b1 << shift 
     }
 
-
+    /// Returns a reference to the component buffer.
+    ///
+    /// # Arguments
+    ///
+    /// `type_id` - The id of the type to be search.
+    fn component_buffer(&self, type_id: &TypeId) -> Option<ComponentBuffer<N>> {
+        // Get a read lock to the components.
+        let c_read = self.components.read().unwrap();
+        // Check idf it can get the buffer if not just return None.
+        guard!(let Some(buffer) = c_read.get(&type_id) else { return None; }); 
+        // Returns a clone of the reference to the buffer.
+        Some(buffer.clone())
+    }
 
     generate_add_component!(2; [A, TypeId, 0], [B, TypeId, 1]);
     generate_add_component!(3; [A, TypeId, 0], [B, TypeId, 1], [C, TypeId, 2]);

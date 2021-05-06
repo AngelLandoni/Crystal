@@ -16,7 +16,7 @@ mod system;
 pub use system::{System, SystemHandler};
 
 mod access;
-pub use access::{Read, Write};
+pub use access::{Read, Write, Accessible};
 
 extern crate fxhash;
 #[macro_use] extern crate guard;

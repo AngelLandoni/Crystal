@@ -27,9 +27,13 @@ type DefaultComponentsStorage = ComponentsStorage::<PAGE_ENTITY_SIZE>;
 type DefaultEntitiesStorage = EntitiesStorage::<PAGE_ENTITY_SIZE>;
 
 /// Defines a default `World` wrapper.
-pub type DefaultWorld = World<DefaultComponentsStorage, DefaultEntitiesStorage>;
+pub type DefaultWorld = World<
+    DefaultComponentsStorage,
+    DefaultEntitiesStorage,
+    PAGE_ENTITY_SIZE
+>;
 
-pub struct World<H: ComponentsHandler, E: EntitiesHandler> {
+pub struct World<H: ComponentsHandler<S>, E: EntitiesHandler, const S: usize> {
     /// Contains the components storage handler, used to store and 
     /// manage all the components in the `World`.
     components_storage: H,
@@ -48,8 +52,8 @@ pub struct World<H: ComponentsHandler, E: EntitiesHandler> {
 }
 
 /// Mark `World` as thread safe.
-unsafe impl<H: ComponentsHandler, E: EntitiesHandler> Send for World<H, E> {}
-unsafe impl<H: ComponentsHandler, E: EntitiesHandler> Sync for World<H, E> {}
+unsafe impl<H: ComponentsHandler<S>, E: EntitiesHandler, const S: usize> Send for World<H, E, S> {}
+unsafe impl<H: ComponentsHandler<S>, E: EntitiesHandler, const S: usize> Sync for World<H, E, S> {}
 
 impl Default for DefaultWorld {
     /// Creates and returns a new `World` which contains a default
@@ -65,7 +69,9 @@ impl Default for DefaultWorld {
     }
 }
 
-impl<H: ComponentsHandler, E: EntitiesHandler> EntityHandler for World<H, E> {
+impl<
+    H: ComponentsHandler<S>, E: EntitiesHandler, const S: usize
+> EntityHandler for World<H, E, S> {
     /// Adds a new entity into the `World` with the provided 
     /// components.
     /// 
@@ -109,8 +115,8 @@ impl<H: ComponentsHandler, E: EntitiesHandler> EntityHandler for World<H, E> {
 }
 
 impl<
-    H: ComponentsHandler, E: EntitiesHandler
-> ComponentHandler for World<H, E> {
+    H: ComponentsHandler<S>, E: EntitiesHandler, const S: usize
+> ComponentHandler for World<H, E, S> {
     /// Registers a new component into the system.
     fn register<C0: 'static>(&self) {
         // Generate an unique id for the component.
@@ -122,7 +128,9 @@ impl<
 }
 
 /// Provide handy functions.
-impl<H: ComponentsHandler, E: EntitiesHandler> World<H, E> {
+impl<
+    H: ComponentsHandler<S>, E: EntitiesHandler, const S: usize
+> World<H, E, S> {
     /// Generates and returns a new `Entity`.
     ///
     /// If there is an avaialbe id not used that will be reused.
@@ -136,14 +144,18 @@ impl<H: ComponentsHandler, E: EntitiesHandler> World<H, E> {
 }
 
 /// Provides handy functions to handle the systems.
-impl<H: ComponentsHandler, E: EntitiesHandler> SystemHandler for World<H, E> {
-    fn run<B: ComponentBundler, S: System<B>>(&self, system: S) {
+impl<
+    H: ComponentsHandler<S>, E: EntitiesHandler, const S: usize
+> SystemHandler for World<H, E, S> {
+    fn run<B: ComponentBundler, Sys: System<B>>(&self, system: Sys) {
         // This must by run in a worker thread.
-        system.run(&self.components_storage);
+        system.run::<H, S>(&self.components_storage);
     }
 }
 
-impl<H: ComponentsHandler + Debug, E: EntitiesHandler> Debug for World<H, E> {
+impl<
+    H: ComponentsHandler<S> + Debug, E: EntitiesHandler, const S: usize
+> Debug for World<H, E, S> {
     fn fmt(&self, formatter: &mut Formatter) -> Result {
         write!(
             formatter, "number of entities: {:?} | {:?}",

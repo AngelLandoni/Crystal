@@ -7,7 +7,8 @@ use ecs::{
     Entity,
     SystemHandler,
     Read,
-    Write
+    Write,
+    Accessible
 };
 
 struct Health(u32);
@@ -32,10 +33,12 @@ fn main() {
 
     world.add_entity((IsEnemy,));
 
-    world.run(do_nothing);
+    world.run(print_health_system);
 }
 
-fn do_nothing(healths: Read<Health>) {
-    println!("Doing nothing");
+fn print_health_system(healths: Read<Health>) {
+    // Print all healths state.
+    for health in healths.iter() {
+    }
 }
    
