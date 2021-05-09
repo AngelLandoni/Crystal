@@ -15,6 +15,9 @@ use crate::{
     consts::BitmaskType
 };
 
+/// Defines the number of componets per page in the block vec.
+pub(crate) const NUM_OF_COMPONETS_PER_PAGE: usize = 400;
+
 macro_rules! generate_add_component_trait {
     ($name: tt; $([$type: ident, $id: ident]),+) => {
         paste! {
@@ -61,7 +64,7 @@ macro_rules! generate_add_component {
 
             {
                 // Get a reference and write lock to the buffer.
-                let buffer: ComponentBuffer<N> = c_buffer.clone();
+                let buffer: ComponentBuffer = c_buffer.clone();
                 let b_reader = buffer.read().unwrap();
 
                 // Check if it can extract the item from the array.
@@ -104,7 +107,7 @@ pub trait ComponentHandler {
 }
 
 /// Provides an aftraction to handle components.
-pub trait ComponentsHandler<const N: usize> {
+pub trait ComponentsHandler {
     /// An aftraction used to register components.
     fn register(&self, c0: TypeId, bitmask_shift: u8);
 
@@ -119,7 +122,7 @@ pub trait ComponentsHandler<const N: usize> {
     fn bitmask(&self, type_id: TypeId) -> BitmaskType;
 
     /// An aftraction used to return the component buffer for a specific type.
-    fn component_buffer(&self, type_id: &TypeId) -> Option<ComponentBuffer<N>>;
+    fn component_buffer(&self, type_id: &TypeId) -> Option<ComponentBuffer>;
 
     /// An aftraction used to remove all the components associated with the
     /// provided entity.
@@ -135,10 +138,13 @@ pub trait ComponentsHandler<const N: usize> {
     generate_add_component_trait!(9; [A, TypeId], [B, TypeId], [C, TypeId], [D, TypeId], [E, TypeId], [F, TypeId], [G, TypeId], [H, TypeId], [I, TypeId]);
 }
 
-type Component = Option<Arc<RwLock<dyn AnyStorage + Send + Sync>>>;
+pub(crate) type Component = Option<Arc<RwLock<dyn AnyStorage + Send + Sync>>>;
 
 /// Defines a data type that is a reference to the storage.
 type ComponentRef = RwLock<Component>;
+
+/// Defines the buffer which contains the components.
+pub(crate) type BufferBlockVec = BlockVec::<ComponentRef, NUM_OF_COMPONETS_PER_PAGE>;
 
 /// Defines the data structure where the components will be stored.
 ///
@@ -146,20 +152,19 @@ type ComponentRef = RwLock<Component>;
 /// 
 /// The reference to the Vec must be protected due two or more thread
 /// could potentially modify the same index at the same time.
-pub(crate) type ComponentBuffer<const N: usize> =
-    Arc<RwLock<BlockVec::<ComponentRef, N>>>;
+pub(crate) type ComponentBuffer = Arc<RwLock<BufferBlockVec>>;
 
 /// Provides an aftraction to store all the components in the ECS.
-pub struct ComponentsStorage<const N: usize> {
+pub struct ComponentsStorage {
     /// Contains all the components in the ECS.
-    components: RwLock<FxHashMap<TypeId, ComponentBuffer<N>>>,
+    components: RwLock<FxHashMap<TypeId, ComponentBuffer>>,
 
     /// Contains all the bitmasks of the components.
     bitmasks: RwLock<FxHashMap<TypeId, u8>>,
 }
 
 /// Provides default initialization for `ComponentsStorage`.
-impl<const N: usize> Default for ComponentsStorage<N> {
+impl Default for ComponentsStorage {
     /// Creates and returns a new `ComponentsStorage` with a default
     /// configuration.
     fn default() -> Self {
@@ -170,7 +175,7 @@ impl<const N: usize> Default for ComponentsStorage<N> {
     }
 }
 
-impl<const N: usize> ComponentsHandler<N> for ComponentsStorage<N> {
+impl ComponentsHandler for ComponentsStorage {
     /// Registers a component into the `World`.
     fn register(&self, c0: TypeId, bitmask_shift: u8) { 
         {
@@ -179,7 +184,10 @@ impl<const N: usize> ComponentsHandler<N> for ComponentsStorage<N> {
             let mut bitmask_c_write = self.bitmasks.write().unwrap();
             // At this point we need create a new component buffer
             // due it does not exist.
-            let new_vec = BlockVec::<ComponentRef, N>::new();
+            let new_vec = BlockVec::<
+                ComponentRef,
+                NUM_OF_COMPONETS_PER_PAGE
+            >::new();
             // Insert the new buffer associated with the correct id.
             c_write.insert(c0, Arc::new(RwLock::new(new_vec)));
             // Insert the bitmask shift for the component. 
@@ -256,7 +264,7 @@ impl<const N: usize> ComponentsHandler<N> for ComponentsStorage<N> {
             });
 
             // Get a reference and write lock to the buffer.
-            let buffer: ComponentBuffer<N> = c_buffer.clone();
+            let buffer: ComponentBuffer = c_buffer.clone();
             let b_reader = buffer.read().unwrap();
 
             // Check if it can extract the item from the array.
@@ -311,7 +319,7 @@ impl<const N: usize> ComponentsHandler<N> for ComponentsStorage<N> {
     /// # Arguments
     ///
     /// `type_id` - The id of the type to be search.
-    fn component_buffer(&self, type_id: &TypeId) -> Option<ComponentBuffer<N>> {
+    fn component_buffer(&self, type_id: &TypeId) -> Option<ComponentBuffer> {
         // Get a read lock to the components.
         let c_read = self.components.read().unwrap();
         // Check idf it can get the buffer if not just return None.
@@ -330,7 +338,7 @@ impl<const N: usize> ComponentsHandler<N> for ComponentsStorage<N> {
     generate_add_component!(9; [A, TypeId, 0], [B, TypeId, 1], [C, TypeId, 2], [D, TypeId, 3], [E, TypeId, 4], [F, TypeId, 5], [G, TypeId, 6], [H, TypeId, 7], [I, TypeId, 8]);
 }
 
-impl<const N: usize> ComponentsStorage<N> {
+impl ComponentsStorage {
     fn sync_buffers(&self) {
         // Get a writer over components in order to avoid 
         // modifications in the buffers sizes in the middle of the 
@@ -377,7 +385,7 @@ impl<const N: usize> ComponentsStorage<N> {
     fn add_new_component<C: 'static + AnyStorage + Send + Sync>(
         &self,
         entity: &Entity,
-        buffer: &ComponentBuffer<N>,
+        buffer: &ComponentBuffer,
         component: C) -> bool {
         
         let mut b_writer = buffer.write().unwrap();
@@ -392,7 +400,7 @@ impl<const N: usize> ComponentsStorage<N> {
     }
 }
 
-impl<const N: usize> Debug for ComponentsStorage<N> {
+impl Debug for ComponentsStorage {
     fn fmt(&self, formatter: &mut Formatter) -> Result {
         let s_reader = self.components.read().unwrap();
         write!(

@@ -1,4 +1,4 @@
-use std::any::TypeId;
+use std::any::type_name;
 
 use crate::{
     bundle::ComponentBundler,
@@ -12,7 +12,7 @@ pub trait SystemHandler {
 }
 
 pub trait System<B: ComponentBundler> {
-    fn run<H: ComponentsHandler<N>, const N: usize>(self, handler: &H);
+    fn run<H: ComponentsHandler>(self, handler: &H);
 }
 
 impl<F, A> System<(A,)> for F
@@ -20,17 +20,22 @@ where
     F: FnOnce(A) -> (),
     A: 'static + Accessible
 {
-    fn run<H: ComponentsHandler<N>, const N: usize>(self, handler: &H) {
+    fn run<H: ComponentsHandler>(self, handler: &H) {
         let a_typeid = id_of::<A::Component>();
         // Extract the id of A, in order to get the bitmask.
         let a_bitmask = handler.bitmask(a_typeid); 
+        
         // Get the component buffer of a.
-        let ref_to_vec = handler.component_buffer(&a_typeid);
+        guard!(let Some(a_b) = handler.component_buffer(&a_typeid) else {
+            panic!(
+                "The component {} does not exist",
+                type_name::<A::Component>()
+            );
+        });
         
         // Create a new instance of Read or Write and and set inside it the
         // reference to the array and send the reference to the block vec.
-        //let a_access: A = A::new(); 
-        (self)(A::new());
+        (self)(A::new(a_b));
     }
 }
 

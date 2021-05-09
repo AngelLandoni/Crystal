@@ -15,6 +15,7 @@ struct Health(u32);
 struct Commander;
 struct IsPlayer;
 struct IsEnemy;
+struct CommnaderKeen;
 
 fn main() {
     let world = DefaultWorld::default();
@@ -41,4 +42,3 @@ fn print_health_system(healths: Read<Health>) {
     for health in healths.iter() {
     }
 }
-   

@@ -13,7 +13,7 @@ use crate::{
 /// Provides an aftraction used to add components into a handler.
 pub trait ComponentBundler {
     /// An aftraction used to add components into the handler.
-    fn add_components<Z: ComponentsHandler<N>, const N: usize>(
+    fn add_components<Z: ComponentsHandler>(
         self,
         entity: Entity,
         handler: &Z) -> BitmaskType;
@@ -29,7 +29,7 @@ impl<T: 'static + Send + Sync> ComponentBundler for (T, ) {
     /// 
     /// `entity` - The entity which receives the component.
     /// `handler` - Where the component will be stored.
-    fn add_components<Z: ComponentsHandler<N>, const N: usize>(
+    fn add_components<Z: ComponentsHandler>(
         self,
         entity: Entity,
         handler: &Z) -> BitmaskType {
@@ -56,7 +56,7 @@ macro_rules! generate_bundle {
             $($type: 'static + Send + Sync,)+
         > ComponentBundler for ($($type), +) {
             fn add_components<
-                Z: ComponentsHandler<N>, const N: usize
+                Z: ComponentsHandler
             >(self, entity: Entity, handler: &Z) -> BitmaskType {
                 paste! {
                     handler.[<add_component $name>](
