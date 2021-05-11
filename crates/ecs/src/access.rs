@@ -1,49 +1,113 @@
 use std::{
-    any::Any,
+    any::{Any, type_name},
     ops::Deref,
     sync::{Arc, RwLock, RwLockReadGuard},
-    marker::PhantomData
+    marker::PhantomData,
+    borrow::Cow
 };
 
 use utils::BlockVec;
 
 use crate::{
+    entity::Entity,
     component::{Component, ComponentBuffer, BufferBlockVec},
     storage::Storage
 };
 
+/// A type that allows read over the component a cross threads.
+pub struct Reader<'a, T: 'static + Send + Sync> {
+    content: Arc<RwLock<Storage<T>>>,
+    _lifetime: PhantomData<&'a ()>
+}
+
+impl<'a, T: 'static + Send +Sync> Reader<'a, T> {
+    /// Creates and returns a new instance of `Reader`.
+    /// 
+    /// # Arguments
+    /// 
+    /// `content` - The content to be referenced.
+    fn new(content: Arc<RwLock<Storage<T>>>) -> Self {
+        Self {
+            content,
+            _lifetime: PhantomData
+        }
+    }
+}
+
+/// TODO(Angel): Double check this.
+impl<'a, T: 'static + Send + Sync> Reader<'a, T> {
+    pub fn read(&self) -> RwLockReadGuard<'_, Storage<T>> {
+        self.content.read().unwrap()
+    }
+}
+
+/// A handy type used to wrap the Lock which contains the storage.
+type SLock<R> = RwLock<Storage<R>>;
+
+/// A nice iterator used to walk over the reads.
 pub struct ReadAccessIterator<'a, T: 'static + Send + Sync> {
     counter: usize,
     reader: RwLockReadGuard<'a, BufferBlockVec>,
+    entities: Arc<Vec<Entity>>,
     _marker: PhantomData<T> 
 }
 
 impl<
     'a, T: 'static + Send + Sync
 > Iterator for ReadAccessIterator<'a, T> {
-    type Item = T;
+    type Item = Reader<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(item) = self.reader.get(self.counter) {
-            // Get read lock over the component ref.
-            if let Some(component_read) = item.read().unwrap().deref() {
-                let component_copy = component_read.clone();
-                if let Some(storage) = component_copy.downcast::<RwLock<Storage<T>>>() {
+        // Get the entity related with the counter.
+        guard!(let Some(entity) = self.entities.get(self.counter) else {
+            return None;
+        });
 
-                }
-            }
+        // Check if the item exits if not just return None, that will
+        // ends the iterator execution.
+        guard!(let Some(item) = self.reader.get(entity.id) else {
+            panic!(
+                "The entity {} does not contain the component {}",
+                123, type_name::<T>()
+            );
+        });
 
-            // Check if the item exist, get a copy of of the reference
-            // and a read to the internal component itself.
-            /*if let Some(i_ref) = component_read {
-                // Get a copy reference to the item.
-                let i_copy = i_ref.clone();
-                // Get a read to that clone.
-            }
-            let the_data = i_read as Self::Item;*/
-        }
+        // Store a the read in order to keep a reference to it and 
+        // avoid borrow checker complains.
+        let component = item.read();
 
-        None
+        // Get read access over the item.
+        guard!(let Ok(c_read) = component else {
+            panic!(
+                "Error trying to get read access over item at index {}",
+                self.counter
+            );
+        });
+
+        // Get the item itself it it exits otherwise just panic,
+        // TODO(Angel): Double check if this can break if the item
+        // is deleted in other thread and after that this is read.
+        guard!(let Some(u_c_read) = c_read.deref() else {
+            panic!(
+                "Component {} for entity {} does not exist",
+                type_name::<T>(), 123
+            );
+        });
+
+        let u_c_read_clone = u_c_read.clone();
+
+        // Cast the AnyStorage to the correct type.
+        guard!(let Ok(s_ref) = u_c_read_clone.downcast::<SLock<T>>() else {
+            panic!(
+                "There was a problem trying to cast component to {}",
+                type_name::<T>()
+            );
+        });
+
+        // Increate counter to go to the next entity.
+        self.counter += 1;
+
+        Some(Reader::new(s_ref))
     }
 }
 
@@ -64,12 +128,13 @@ impl<T: 'static + Send + Sync> Iterator for WriteAccessIterator<T> {
 pub trait Accessible: Send + Sync {
     type Component;
 
-    fn new(buffer: ComponentBuffer) -> Self;
+    fn new(buffer: ComponentBuffer, entities: Arc<Vec<Entity>>) -> Self;
 }
 
 /// Provides a type used to read storages from the `World`.
 pub struct Read<T: 'static + Send + Sync> {
     buffer: ComponentBuffer,
+    entities: Arc<Vec<Entity>>,
     _marker: PhantomData<T> 
 }
 
@@ -77,9 +142,10 @@ pub struct Read<T: 'static + Send + Sync> {
 impl<T: 'static + Send + Sync> Accessible for Read<T> {
     type Component = T;
 
-    fn new(buffer: ComponentBuffer) -> Self {
+    fn new(buffer: ComponentBuffer, entities: Arc<Vec<Entity>>) -> Self {
         Self {
-            buffer, 
+            buffer,
+            entities,
             _marker: PhantomData
         }
     }
@@ -95,6 +161,8 @@ impl<T: 'static + Send + Sync> Read<T> {
             // Take a read access now to avoid multiples read access when
             // the iterator loops
             reader: self.buffer.read().unwrap(),
+            // Send the correct entities ids.
+            entities: self.entities.clone(),
             _marker: PhantomData
         }
     } 
@@ -102,6 +170,7 @@ impl<T: 'static + Send + Sync> Read<T> {
 
 pub struct Write<T: 'static + Send + Sync> {
     buffer: ComponentBuffer,
+    entities: Arc<Vec<Entity>>,
     _marker: PhantomData<T>
 }
 
@@ -109,9 +178,10 @@ pub struct Write<T: 'static + Send + Sync> {
 impl<T: 'static + Send + Sync> Accessible for Write<T> {
     type Component = T;
 
-    fn new(buffer: ComponentBuffer) -> Self {
+    fn new(buffer: ComponentBuffer, entities: Arc<Vec<Entity>>) -> Self {
         Self {
             buffer,
+            entities,
             _marker: PhantomData
         }
     }

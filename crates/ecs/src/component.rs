@@ -1,5 +1,5 @@
 use std::{
-    any::{TypeId, type_name},
+    any::{Any, TypeId, type_name},
     sync::{Arc, RwLock},
     fmt::{Debug, Result, Formatter},
 };
@@ -138,7 +138,7 @@ pub trait ComponentsHandler {
     generate_add_component_trait!(9; [A, TypeId], [B, TypeId], [C, TypeId], [D, TypeId], [E, TypeId], [F, TypeId], [G, TypeId], [H, TypeId], [I, TypeId]);
 }
 
-pub(crate) type Component = Option<Arc<RwLock<dyn AnyStorage + Send + Sync>>>;
+pub(crate) type Component = Option<Arc<dyn Any + Send + Sync>>;
 
 /// Defines a data type that is a reference to the storage.
 type ComponentRef = RwLock<Component>;

@@ -25,20 +25,39 @@ fn main() {
     world.register::<Health>();
     world.register::<IsEnemy>();
 
-    for _ in 1..1000 {
-        world.add_entity((IsPlayer, Health(123)));
-        world.add_entity((Commander, IsEnemy, Health(333)));
-    }
-
-    world.remove_entity(Entity::new(3));
+    world.add_entity((IsPlayer, Health(123)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
+    world.add_entity((Commander, IsEnemy, Health(333)));
 
     world.add_entity((IsEnemy,));
+    world.add_entity((IsEnemy,));
+    world.add_entity((IsEnemy,));
+    world.add_entity((IsEnemy,));
+    world.add_entity((IsEnemy,));
+    world.add_entity((IsEnemy, Health(333)));
+    
+    //world.remove_entity(Entity::new(3));
+
 
     world.run(print_health_system);
 }
 
 fn print_health_system(healths: Read<Health>) {
     // Print all healths state.
+    let mut counter: i32 = 0;
     for health in healths.iter() {
+        counter += 1;
+        println!("{:?}", health.read().0);
     }
+
+    println!("Counter {}", counter);
 }

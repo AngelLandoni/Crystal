@@ -10,7 +10,7 @@ use std::{
 ///         * and it is a read it will return None.
 ///         * and it is write it will expand the buffer to the needed size (always in N sizes). 
 pub struct BlockVec<T, const N: usize> {
-    // The current number of items in the Vec.
+    /// The current number of items in the Vec.
     number_of_items: usize,
 
     /// A queue of pointers to blocks.
@@ -153,6 +153,14 @@ impl<T, const N: usize> BlockVec<T, N> {
     /// Returns the number of blocks.
     pub fn blocks_len(&self) -> usize {
         self.blocks.len()
+    }
+
+    /// Returns the actual len of the block vec.
+    /// 
+    /// As the item could be setted in any part of the block vec we
+    /// do not know the last index 
+    pub fn actual_len(&self) -> usize {
+        self.blocks.len() * N
     }
 }
 

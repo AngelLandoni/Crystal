@@ -17,6 +17,9 @@ pub trait EntitiesHandler {
 
     /// An aftraction to reset the mask of the entity.
     fn reset_bitmask(&self, entity: &Entity);
+
+    /// An aftraction used to search for all the entities which 
+    fn query_by_bitmask(&self, bitmasks: BitmaskType) -> Vec<Entity>;
 }
 
 /// Represents a storage which holds entities.
@@ -73,11 +76,49 @@ impl<const N: usize> EntitiesHandler for EntitiesStorage<N> {
     /// # Arguments
     ///
     /// `entity` - The entity used to find the mask to reset.
+    /// 
+    /// TODO(Angel): Try to only lock the item itself and not the 
+    /// entire array.
     fn reset_bitmask(&self, entity: &Entity) {
         // Get a write lock.
         let mut cm_writer = self.bit_masks.write().unwrap();
         // Clear the bitmask.
         cm_writer.set(0, entity.id);
+    }
+
+    /// Returns a list of entities which cumpliments with the
+    /// bitmask requirement.
+    /// 
+    /// # Arguments
+    /// 
+    /// `bitmasks` - The bitmask filter.
+    /// 
+    /// TODO(Angel): Huge optimization here, it is not needed to
+    /// iterate over all the entire vec just till the last element
+    /// but that required `BlockVec` modifications.
+    fn query_by_bitmask(&self, bitmasks: BitmaskType) -> Vec<Entity> {
+        // A list of filtered entities.
+        let mut f_entities: Vec<Entity> = Vec::new();
+        // The read access to the masks. 
+        let r_bitmasks = self.bit_masks.read().unwrap();
+        // Get the length of the vector.
+        let actual_len = r_bitmasks.actual_len();
+        
+        // As bitmask is setted to 0 when it is deleted the filter
+        // will ignore them.
+        for i in 0..actual_len {
+            // The entity bitmask.
+            if let Some(e_bitmask) = r_bitmasks.get(i) {
+                // Apply a logical "and" over the masks, if the result
+                // is equal to the mask provided then the entity 
+                // contains all the needed components.
+                if e_bitmask & bitmasks == bitmasks {
+                    f_entities.push(Entity::new(i));
+                }
+            }
+        } 
+        
+        f_entities
     }
 }
 

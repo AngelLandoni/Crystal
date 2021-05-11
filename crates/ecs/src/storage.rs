@@ -1,7 +1,6 @@
-pub trait AnyStorage {
-    // Method to return the component, any idea how to cast that 
-    // to the correct value?.
-}
+use std::ops::Deref;
+
+pub trait AnyStorage {}
 
 /// A wrapper over the components that allow us avoid force the
 /// dev to implement a trait over their own components.
@@ -17,6 +16,14 @@ impl<T> Storage<T> {
         Self {
             component
         }
+    }
+}
+
+impl<T> Deref for Storage<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.component
     }
 }
 

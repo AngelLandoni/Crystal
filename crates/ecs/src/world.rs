@@ -148,7 +148,10 @@ impl<
 > SystemHandler for World<H, E> {
     fn run<B: ComponentBundler, Sys: System<B>>(&self, system: Sys) {
         // This must by run in a worker thread.
-        system.run::<H>(&self.components_storage);
+        system.run::<H, E>(
+            &self.components_storage,
+            &self.entities_storage
+        );
     }
 }
 
