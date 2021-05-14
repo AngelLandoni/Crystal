@@ -3,6 +3,9 @@ mod storage;
 mod bundle;
 mod consts;
 
+mod query;
+pub use query::*;
+
 mod component;
 pub use component::ComponentHandler;
 

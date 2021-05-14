@@ -4,11 +4,10 @@ use ecs::{
     DefaultWorld,
     EntityHandler,
     ComponentHandler,
-    Entity,
     SystemHandler,
     Read,
     Write,
-    Accessible
+    Searchable
 };
 
 struct Health(u32);
@@ -45,6 +44,7 @@ fn main() {
     world.add_entity((IsEnemy,));
     world.add_entity((IsEnemy, Health(31231233)));
     
+    // TODO(Angel): Fix this
     //world.remove_entity(Entity::new(3));
 
     world.run(print_health_system);
@@ -65,15 +65,18 @@ fn print_health_system(healths: Read<Health>) {
 
 fn print_heath_and_isenemy_system(
     healths: Read<Health>,
-    isEnemy: Read<IsEnemy>,
-    commander: Read<Commander>
+    enemies: Read<IsEnemy>,
+    commander: Read<Commander>,
+    payer: Read<IsPlayer>
 ) {
-    // Print all healths state.
-    let mut counter: i32 = 0;
-    for health in healths.iter() {
-        counter += 1;
-        println!("{:?}", health.read().0);
-    }
+    let query = (
+        healths.iter(),
+        enemies.iter(),
+        commander.iter(),
+        payer.iter()
+    ).query();
 
-    println!("Counter {}", counter); 
+    for (heath, _, _, _) in query {
+        println!("health: {}", heath.read().0)
+    }
 }

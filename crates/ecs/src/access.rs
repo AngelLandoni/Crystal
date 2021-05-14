@@ -1,16 +1,13 @@
 use std::{
-    any::{Any, type_name},
+    any::type_name,
     ops::Deref,
     sync::{Arc, RwLock, RwLockReadGuard},
     marker::PhantomData,
-    borrow::Cow
 };
-
-use utils::BlockVec;
 
 use crate::{
     entity::Entity,
-    component::{Component, ComponentBuffer, BufferBlockVec},
+    component::{ComponentBuffer, BufferBlockVec},
     storage::Storage
 };
 
