@@ -5,6 +5,7 @@ use ecs::{
     EntityHandler,
     ComponentHandler,
     SystemHandler,
+    Entity,
     Read,
     Write,
     Searchable
@@ -45,7 +46,7 @@ fn main() {
     world.add_entity((IsEnemy, Health(31231233)));
     
     // TODO(Angel): Fix this
-    //world.remove_entity(Entity::new(3));
+    world.remove_entity(Entity::new(3));
 
     world.run(print_health_system);
     println!("ASD");
@@ -66,17 +67,15 @@ fn print_health_system(healths: Read<Health>) {
 fn print_heath_and_isenemy_system(
     healths: Read<Health>,
     enemies: Read<IsEnemy>,
-    commander: Read<Commander>,
-    payer: Read<IsPlayer>
+    commander: Read<Commander>
 ) {
     let query = (
         healths.iter(),
         enemies.iter(),
-        commander.iter(),
-        payer.iter()
+        commander.iter()
     ).query();
 
-    for (heath, _, _, _) in query {
+    for (heath, _, _) in query {
         println!("health: {}", heath.read().0)
     }
 }

@@ -46,7 +46,8 @@ paste! {
         fn next(&mut self) -> Option<Self::Item> {
             $(
                 paste! {
-                    guard!(let Some([<$type _p>]) = self.$id.next() else { return None; });
+                    guard!(let Some([<$type _p>]) = self.$id.next() 
+                        else { return None; });
                 }
             )+
             
