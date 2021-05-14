@@ -49,7 +49,7 @@ fn main() {
     world.remove_entity(Entity::new(3));
 
     world.run(print_health_system);
-    println!("ASD");
+    println!("------------");
     world.run(print_heath_and_isenemy_system);
 }
 
