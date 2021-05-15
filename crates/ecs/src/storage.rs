@@ -1,5 +1,6 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
+/// TODO(Angel): This thing should go away.
 pub trait AnyStorage {}
 
 /// A wrapper over the components that allow us avoid force the
@@ -24,6 +25,12 @@ impl<T> Deref for Storage<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.component
+    }
+}
+
+impl<T> DerefMut for Storage<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.component
     }
 }
 

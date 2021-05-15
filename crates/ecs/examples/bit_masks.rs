@@ -39,18 +39,31 @@ fn main() {
     world.add_entity((Commander, IsEnemy, Health(1)));
 
     world.add_entity((IsEnemy,));
-    world.add_entity((IsEnemy,));
-    world.add_entity((IsEnemy,));
-    world.add_entity((IsEnemy,));
-    world.add_entity((IsEnemy,));
     world.add_entity((IsEnemy, Health(31231233)));
     
     // TODO(Angel): Fix this
     world.remove_entity(Entity::new(3));
 
+    world.run(update_system);
     world.run(print_health_system);
     println!("------------");
     world.run(print_heath_and_isenemy_system);
+}
+
+fn update_system(
+    healhts: Write<Health>,
+    enemies: Read<IsEnemy>,
+    commander: Read<Commander>
+) {
+    let query = (
+        healhts.iter(),
+        enemies.iter(),
+        commander.iter()
+    ).query();
+
+    for (health, _, _) in query {
+        health.write().0 = 1337;
+    }
 }
 
 fn print_health_system(healths: Read<Health>) {
