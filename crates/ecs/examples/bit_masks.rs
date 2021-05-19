@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    thread,
+    sync::{Arc, RwLock}
+};
 
 use ecs::{
     DefaultWorld,
@@ -37,7 +40,6 @@ fn main() {
     world.add_entity((Commander, IsEnemy, Health(1)));
     world.add_entity((Commander, IsEnemy, Health(1)));
     world.add_entity((Commander, IsEnemy, Health(1)));
-
     world.add_entity((IsEnemy,));
     world.add_entity((IsEnemy, Health(31231233)));
     
@@ -87,6 +89,9 @@ fn print_heath_and_isenemy_system(
         enemies.iter(),
         commander.iter()
     ).query();
+
+    let handle = thread::current();
+    println!("Print heath thread name: {:?}", handle.name());
 
     for (heath, _, _) in query {
         println!("health: {}", heath.read().0)

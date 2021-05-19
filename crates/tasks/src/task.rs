@@ -1,35 +1,46 @@
-use std::fmt::{Debug, Result, Formatter};
+use std::{
+    sync::Arc,
+    fmt::{Debug, Result, Formatter}
+};
+
+pub trait FnBox {
+    fn call_box(self: Box<Self>);
+}
+
+impl<F: FnOnce()> FnBox for F {
+    fn call_box(self: Box<F>) {
+        (*self)()
+    }
+}
 
 /// A trait to execute a work load or task.
 pub trait Executable {
     fn execute(&self);
 }
 
+pub type Task = Box<dyn FnOnce() + Send + 'static>;
+/*
 /// Defines a wrapper which contains the callback and some useful 
 /// debug information. 
-pub struct Task<T> where 
-    T: Fn() + Sized + Sync
-{
+pub struct Task {
     /// A variable which contains the callback to be executed.
-    callback: T,
+    callback: Box<dyn CbFunc + Send>,
 
     /// A variable which conatins 
     name: Option<String>
 }
 
 /// Provides constructors for `Task`. 
-impl<T> Task<T> where
-    T: Fn() + Sized + Sync
-{
+impl Task {
     /// Creates and returns a new `Task` with the provided closure.
     /// 
     /// # Arguments
     /// 
     /// `priority` - The priority of the task.
     /// `callback` - The work to get done
-    pub fn new(callback: T) -> Self {
+    pub fn new(callback: dyn CbFunc + Send) -> Self {
         Self {
-            callback,
+            callback: Box::new(callback),
             name: None
         }
     }
@@ -42,29 +53,26 @@ impl<T> Task<T> where
     /// `callback` - The work to get done.
     /// `name` - The debug name used to track the task.
     pub fn new_debug(
-        callback: T,
+        callback: dyn CbFunc + Send,
         name: String) -> Self {
         
         Self {
-            callback,
+            callback: Box::new(callback),
             name: Some(name)    
         }
     }
 }
 
 /// Provides execution to the `Task`.
-impl<T> Executable for Task<T> where
-    T: Fn() + Sized + Sync 
-{
+impl Executable for Task {
     /// Executes the current `Task`.
     fn execute(&self) {
-       (self.callback)(); 
+        self.callback.call_box();
     }
 }
 
 /// Provide a debug function for the `Task`.
-impl<T> Debug for Task<T> where
-    T: Fn() + Send + Sync {
+impl Debug for Task {
     fn fmt(&self, formatter: &mut Formatter) -> Result {
         write!(formatter, r#"
 [+] Worker:
@@ -72,4 +80,4 @@ impl<T> Debug for Task<T> where
         "#,
         self.name.as_ref().unwrap_or(&"".to_string()))
     }
-}
+}*/

@@ -8,12 +8,12 @@ use crossbeam_queue::SegQueue;
 
 use crate::{
     dispatch::Dispatcher,
-    task::Executable
+    task::{Task}
 };
 
 /// Just a handy wrapper of the task queue so we do not deal with 
 /// large data types.
-type TaskQueue = Arc<SegQueue<Box<dyn Executable + Send>>>;
+type TaskQueue = Arc<SegQueue<Task>>;
 
 /// Defines a worker.
 struct Worker {
@@ -123,7 +123,7 @@ impl Dispatcher for Workers {
     /// # Arguments
     /// 
     /// `task` -The task to be executed.
-    fn execute_dyn(&self, task: Box<dyn Executable + Send>) {
+    fn execute_dyn(&self, task: Task) {
         self.queue.push(task);
     }
 
@@ -135,7 +135,7 @@ impl Dispatcher for Workers {
     /// `task` -The task to be executed 
     fn execute_batch(
         &self,
-        tasks: Vec<Box<dyn Executable + Send>>) {
+        tasks: Vec<Task>) {
         for task in tasks {
             self.queue.push(task);
         }
@@ -163,7 +163,7 @@ fn worker_loop(
             // Get a task from the queue, if there are not tasks to
             // do go to sleep.
             if let Some(task) = t_queue.pop() {
-                task.execute();
+                task();
             } else {
                 yield_now();
             } 

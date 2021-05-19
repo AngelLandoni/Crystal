@@ -28,6 +28,9 @@ pub struct EntitiesStorage<const N: usize> {
     bit_masks: RwLock<BlockVec<BitmaskType, N>>
 }
 
+unsafe impl<const N: usize> Send for EntitiesStorage<N> {}
+unsafe impl<const N: usize> Sync for EntitiesStorage<N> {}
+
 impl<const N: usize> Default for EntitiesStorage<N> {
     /// Creates and returns a new `EntitiesStorage`.
     fn default() -> Self {

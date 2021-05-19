@@ -23,12 +23,12 @@ fn main() {
     print!("{:?}", workers);
 
     loop {
-        let mut vec: Vec<Box<dyn Executable + Send>> = Vec::new();
-        for i in 1..50 {
+        let mut vec: Vec<Task> = Vec::new();
+        for _ in 1..50 {
             let c_world = shared_world.clone();
-            vec.push(Box::new(Task::new(move || {
+            vec.push(Box::new(move || {
                 c_world.add_entity((IsPlayer, Health(123)));
-            })));
+            }));
         }
         workers.execute_batch(vec);
 

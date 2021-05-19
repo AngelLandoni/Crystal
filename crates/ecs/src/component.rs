@@ -163,6 +163,9 @@ pub struct ComponentsStorage {
     bitmasks: RwLock<FxHashMap<TypeId, u8>>,
 }
 
+unsafe impl Send for ComponentsStorage {}
+unsafe impl Sync for ComponentsStorage {}
+
 /// Provides default initialization for `ComponentsStorage`.
 impl Default for ComponentsStorage {
     /// Creates and returns a new `ComponentsStorage` with a default

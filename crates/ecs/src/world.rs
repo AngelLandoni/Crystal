@@ -2,8 +2,13 @@ use crossbeam_queue::SegQueue;
 
 use std::{
     fmt::{Debug, Result, Formatter},
-    sync::atomic::{AtomicUsize, Ordering}
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, RwLock
+    }
 };
+
+use tasks::{Workers, Task, Dispatcher, Executable};
 
 use crate::{
     type_id::id_of,
@@ -32,13 +37,16 @@ pub type DefaultWorld = World<
     DefaultEntitiesStorage
 >;
 
-pub struct World<H: ComponentsHandler, E: EntitiesHandler> {
+pub struct World<
+    H: ComponentsHandler + Send + Sync,
+    E: EntitiesHandler + Send + Sync
+> {
     /// Contains the components storage handler, used to store and 
     /// manage all the components in the `World`.
-    components_storage: H,
+    components_storage: Arc<H>,
 
     /// Contains all the entities and the related information to them.
-    entities_storage: E,
+    entities_storage: Arc<E>,
     
     /// Contains a counter of the amount of ids in the `World`. 
     number_of_entities: AtomicUsize,
@@ -47,29 +55,47 @@ pub struct World<H: ComponentsHandler, E: EntitiesHandler> {
     number_of_components: AtomicUsize,
 
     /// Contains a queue of free entities to be used.
-    free_entities: SegQueue<Entity>
+    free_entities: SegQueue<Entity>,
+
+    /// Contains the workers pool.
+    workers: Workers
 }
 
 /// Mark `World` as thread safe.
-unsafe impl<H: ComponentsHandler, E: EntitiesHandler> Send for World<H, E> {}
-unsafe impl<H: ComponentsHandler, E: EntitiesHandler> Sync for World<H, E> {}
+unsafe impl<
+    H: ComponentsHandler + Send + Sync,
+    E: EntitiesHandler + Send + Sync
+> Send for World<H, E> {}
+unsafe impl<
+    H: ComponentsHandler + Send + Sync,
+    E: EntitiesHandler + Send + Sync
+> Sync for World<H, E> {}
 
 impl Default for DefaultWorld {
     /// Creates and returns a new `World` which contains a default
     /// configuration.
     fn default() -> Self {
+        // Start workers.
+        let mut workers = Workers::default();
+        workers.start();
+
+        let c_storage = Arc::new(DefaultComponentsStorage::default());
+        let e_storage = Arc::new(DefaultEntitiesStorage::default());
+
         Self {
-            components_storage: DefaultComponentsStorage::default(),
-            entities_storage: DefaultEntitiesStorage::default(),
+            components_storage: c_storage,
+            entities_storage: e_storage,
             number_of_entities: AtomicUsize::new(0),
             number_of_components: AtomicUsize::new(0),
-            free_entities: SegQueue::new()
+            free_entities: SegQueue::new(),
+            workers: workers
         }
     }
 }
 
 impl<
-    H: ComponentsHandler, E: EntitiesHandler
+    H: ComponentsHandler + Send + Sync,
+    E: EntitiesHandler + Send + Sync
 > EntityHandler for World<H, E> {
     /// Adds a new entity into the `World` with the provided 
     /// components.
@@ -91,7 +117,8 @@ impl<
             
         // Add all the components to the entity.
         let bitmask = 
-            components.add_components(entity, &self.components_storage);
+            components.add_components(
+                entity, self.components_storage.clone());
 
         // Register the bitmask for the given entity.
         self.entities_storage.register_bitmask(&entity, &bitmask);
@@ -114,7 +141,8 @@ impl<
 }
 
 impl<
-    H: ComponentsHandler, E: EntitiesHandler
+    H: ComponentsHandler + Send + Sync,
+    E: EntitiesHandler + Send + Sync
 > ComponentHandler for World<H, E> {
     /// Registers a new component into the system.
     fn register<C0: 'static>(&self) {
@@ -128,7 +156,8 @@ impl<
 
 /// Provide handy functions.
 impl<
-    H: ComponentsHandler, E: EntitiesHandler
+    H: ComponentsHandler + Send + Sync,
+    E: EntitiesHandler + Send + Sync
 > World<H, E> {
     /// Generates and returns a new `Entity`.
     ///
@@ -144,25 +173,33 @@ impl<
 
 /// Provides handy functions to handle the systems.
 impl<
-    H: ComponentsHandler, E: EntitiesHandler
+    H: ComponentsHandler + Send + Sync + 'static,
+    E: EntitiesHandler + Send + Sync + 'static
 > SystemHandler for World<H, E> {
-    fn run<B: ComponentBundler, Sys: System<B>>(&self, system: Sys) {
+    fn run<
+        B: ComponentBundler, Sys: System<B> + 'static + Send + Sync
+    >(&self, system: Sys) {
+        // Get a clone of the storages in order to send them to the
+        // queue.
+        let c_s_copy = self.components_storage.clone();
+        let e_s_copy = self.entities_storage.clone();
+
         // This must by run in a worker thread.
-        system.run::<H, E>(
-            &self.components_storage,
-            &self.entities_storage
-        );
+        self.workers.execute_dyn(Box::new(move || {
+            system.run(c_s_copy, e_s_copy);
+        }));
     }
 }
 
 impl<
-    H: ComponentsHandler + Debug, E: EntitiesHandler
+    H: ComponentsHandler + Send + Sync,
+    E: EntitiesHandler + Send + Sync
 > Debug for World<H, E> {
     fn fmt(&self, formatter: &mut Formatter) -> Result {
         write!(
-            formatter, "number of entities: {:?} | {:?}",
+            formatter, "number of entities: {:?}", // | {:?}",
             self.number_of_entities,
-            self.components_storage
+            //self.components_storage
         )
     }
 }

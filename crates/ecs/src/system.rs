@@ -15,13 +15,16 @@ use crate::{
 };
 
 pub trait SystemHandler {
-    fn run<B: ComponentBundler, S: System<B>>(&self, system: S);
+    fn run<
+        B: ComponentBundler, S: System<B> + 'static + Send + Sync
+    >(&self, system: S);
 }
 
 pub trait System<B: ComponentBundler> {
     fn run<
-        C: ComponentsHandler, E: EntitiesHandler
-    >(self, components_handler: &C, entities_handler: &E);
+        C: ComponentsHandler + Send + Sync,
+        E: EntitiesHandler + Send + Sync
+    >(self, components_handler: Arc<C>, entities_handler: Arc<E>);
 }
 
 impl<F, A> System<(A,)> for F
@@ -31,7 +34,7 @@ where
 {
     fn run<
         C: ComponentsHandler, E: EntitiesHandler
-    >(self, components_handler: &C, entities_handler: &E) {
+    >(self, components_handler: Arc<C>, entities_handler: Arc<E>) {
         let a_typeid = id_of::<A::Component>();
         // Extract the id of A, in order to get the bitmask.
         let a_bitmask = components_handler.bitmask(a_typeid); 
@@ -65,8 +68,9 @@ where
     $($type: 'static + Accessible,)+
 {
     fn run<
-        C: ComponentsHandler, E: EntitiesHandler
-    >(self, components_handler: &C, entities_handler: &E) {
+        C: ComponentsHandler + Send + Sync,
+        E: EntitiesHandler + Send + Sync
+    >(self, components_handler: Arc<C>, entities_handler: Arc<E>) {
         $(
             paste! {
                 let [<$type _typeid>] = id_of::<$type::Component>();

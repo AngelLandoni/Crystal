@@ -1,4 +1,4 @@
-use crate::task::Executable;
+use crate::task::Task;
 
 /// Defines how a dispatcher should behave.
 /// 
@@ -9,8 +9,8 @@ pub trait Dispatcher {
     fn start(&mut self);
  
     /// Defines a task exection by dynamic dispatching.
-    fn execute_dyn(&self, task: Box<dyn Executable + Send>);
+    fn execute_dyn(&self, task: Task);
 
     /// Defines a tasks execution by dynamic dispatching. 
-    fn execute_batch(&self, tasks: Vec<Box<dyn Executable + Send>>);
+    fn execute_batch(&self, tasks: Vec<Task>);
 }

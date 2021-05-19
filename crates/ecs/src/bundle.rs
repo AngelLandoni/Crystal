@@ -1,4 +1,7 @@
-use std::any::TypeId;
+use std::{
+    sync::Arc,
+    any::TypeId
+};
 
 use paste::paste;
 
@@ -13,12 +16,13 @@ use crate::{
 /// Provides an aftraction used to add components into a handler.
 pub trait ComponentBundler {
     /// An aftraction used to add components into the handler.
-    fn add_components<Z: ComponentsHandler>(
+    fn add_components<Z: ComponentsHandler + Send + Sync>(
         self,
         entity: Entity,
-        handler: &Z) -> BitmaskType;
+        handler: Arc<Z>) -> BitmaskType;
 
-    /// An aftraction used to return the number of component in the bundle.
+    /// An aftraction used to return the number of component in 
+    /// the bundle.
     fn len(&self) -> usize;
 }
 
@@ -29,10 +33,10 @@ impl<T: 'static + Send + Sync> ComponentBundler for (T, ) {
     /// 
     /// `entity` - The entity which receives the component.
     /// `handler` - Where the component will be stored.
-    fn add_components<Z: ComponentsHandler>(
+    fn add_components<Z: ComponentsHandler + Send + Sync>(
         self,
         entity: Entity,
-        handler: &Z) -> BitmaskType {
+        handler: Arc<Z>) -> BitmaskType {
 
         // Get the type id of the first element in the tuple.
         let a_id: TypeId = id_of::<T>();
@@ -56,8 +60,8 @@ macro_rules! generate_bundle {
             $($type: 'static + Send + Sync,)+
         > ComponentBundler for ($($type), +) {
             fn add_components<
-                Z: ComponentsHandler
-            >(self, entity: Entity, handler: &Z) -> BitmaskType {
+                Z: ComponentsHandler + Send + Sync
+            >(self, entity: Entity, handler: Arc<Z>) -> BitmaskType {
                 paste! {
                     handler.[<add_component $name>](
                         entity,
