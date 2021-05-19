@@ -6,6 +6,9 @@ mod consts;
 mod query;
 pub use query::*;
 
+mod sync;
+pub use sync::{TaskSync, TaskWaitable};
+
 mod component;
 pub use component::ComponentHandler;
 

@@ -20,7 +20,8 @@ use crate::{
         NUM_OF_COMPONETS_PER_PAGE
     },
     entity::{Entity, EntitiesHandler, EntitiesStorage, EntityHandler},
-    system::{System, SystemHandler}
+    system::{System, SystemHandler},
+    sync::TaskSync
 };
 
 /// Defines the size of the entities that should be reached to 
@@ -178,16 +179,23 @@ impl<
 > SystemHandler for World<H, E> {
     fn run<
         B: ComponentBundler, Sys: System<B> + 'static + Send + Sync
-    >(&self, system: Sys) {
+    >(&self, system: Sys) -> Arc<TaskSync> {
         // Get a clone of the storages in order to send them to the
         // queue.
         let c_s_copy = self.components_storage.clone();
         let e_s_copy = self.entities_storage.clone();
 
+        // Generate a signal in order to know when the task finish.
+        let task_sync = Arc::new(TaskSync::default());
+        let task_sync_copy = task_sync.clone();
+
         // This must by run in a worker thread.
         self.workers.execute_dyn(Box::new(move || {
             system.run(c_s_copy, e_s_copy);
+            task_sync_copy.mark_as_finish();
         }));
+
+        task_sync
     }
 }
 

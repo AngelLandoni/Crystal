@@ -1,5 +1,4 @@
 use std::{
-    borrow::Cow,
     sync::Arc,
     any::type_name
 };
@@ -11,13 +10,14 @@ use crate::{
     component::ComponentsHandler,
     access::Accessible,
     entity::EntitiesHandler,
+    sync::TaskSync,
     type_id::id_of
 };
 
 pub trait SystemHandler {
     fn run<
         B: ComponentBundler, S: System<B> + 'static + Send + Sync
-    >(&self, system: S);
+    >(&self, system: S) -> Arc<TaskSync>;
 }
 
 pub trait System<B: ComponentBundler> {

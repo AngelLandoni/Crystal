@@ -11,7 +11,8 @@ use ecs::{
     Entity,
     Read,
     Write,
-    Searchable
+    Searchable,
+    TaskWaitable
 };
 
 struct Health(u32);
@@ -43,13 +44,13 @@ fn main() {
     world.add_entity((IsEnemy,));
     world.add_entity((IsEnemy, Health(31231233)));
     
-    // TODO(Angel): Fix this
     world.remove_entity(Entity::new(3));
 
-    world.run(update_system);
-    world.run(print_health_system);
-    println!("------------");
-    world.run(print_heath_and_isenemy_system);
+    (
+        world.run(update_system),
+        world.run(print_health_system),
+        world.run(print_heath_and_isenemy_system)
+    ).wait();
 }
 
 fn update_system(
