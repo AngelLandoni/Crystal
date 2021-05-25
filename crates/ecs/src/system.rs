@@ -8,7 +8,7 @@ use paste::paste;
 use crate::{
     bundle::ComponentBundler,
     component::ComponentsHandler,
-    access::Accessible,
+    access::{Accessible, SLock},
     entity::EntitiesHandler,
     sync::TaskSync,
     type_id::id_of
@@ -30,7 +30,8 @@ pub trait System<B: ComponentBundler> {
 impl<F, A> System<(A,)> for F
 where 
     F: FnOnce(A) -> (),
-    A: 'static + Accessible
+    A: 'static + Accessible,
+    <A as Accessible>::Component: Sync + Send
 {
     fn run<
         C: ComponentsHandler, E: EntitiesHandler
@@ -47,7 +48,10 @@ where
                     type_name::<A::Component>()
                 );
             });
-            a = A::unique_new(c);
+            guard!(let Ok(c_downcasted) = c.downcast::<SLock<A::Component>>() else {
+                panic!("Error casting Arc pointer");
+            });
+            a = A::unique_new(c_downcasted);
         } else {
             // Extract the id of A, in order to get the bitmask.
             let a_bitmask = components_handler.bitmask(a_typeid); 
@@ -81,7 +85,9 @@ macro_rules! generate_system {
 impl<F, $($type,)+> System<($($type,)+)> for F
 where 
     F: FnOnce($($type,)+) -> (),
-    $($type: 'static + Accessible,)+
+    $(
+        $type: 'static + Accessible,
+        <$type as Accessible>::Component: Sync + Send,)+
 {
     fn run<
         C: ComponentsHandler + Send + Sync,
@@ -89,7 +95,7 @@ where
     >(self, components_handler: Arc<C>, entities_handler: Arc<E>) {
         $(
             paste! {
-                let [<$type _typeid>] = id_of::<$type::Component>();
+                let g_typeid = id_of::<$type::Component>();
                 let [<$type _var>]: $type;
             }
         )+
@@ -118,7 +124,10 @@ where
                 }
                 
                 paste! {
-                    [<$type _var>] = $type::unique_new(c);
+                    guard!(let Ok(c_downcasted) = c.downcast::<SLock<$type::Component>>() else {
+                        panic!("Error casting Arc pointer");
+                    });
+                    [<$type _var>] = $type::unique_new(c_downcasted);
                 }
             } else {
                 paste! {

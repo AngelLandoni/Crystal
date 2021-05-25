@@ -113,5 +113,5 @@ fn test_renderer(
     renderer: UniqueRead<Renderer>,
     _enemies: Read<IsEnemy>) {
 
-    println!("Funcando! {}", renderer.read().read().0);
+    println!("Funcando! {}", renderer.read().0);
 }

@@ -15,7 +15,7 @@ pub trait Accessible: Send + Sync {
     type Component;
 
     fn new(buffer: ComponentBuffer, entities: Arc<Vec<Entity>>) -> Self;
-    fn unique_new(component: UniqueComponent) -> Self;
+    fn unique_new(component: Arc<SLock<Self::Component>>) -> Self;
 
     fn is_unique() -> bool;
 }
@@ -49,7 +49,7 @@ impl<'a, T: 'static + Send + Sync> Reader<'a, T> {
 }
 
 /// A handy type used to wrap the Lock which contains the storage.
-type SLock<R> = RwLock<Storage<R>>;
+pub(crate) type SLock<R> = RwLock<Storage<R>>;
 
 /// A nice iterator used to walk over the reads.
 pub struct ReadAccessIterator<'a, T: 'static + Send + Sync> {
@@ -139,7 +139,7 @@ impl<T: 'static + Send + Sync> Accessible for Read<T> {
     }
 
     /// This function is not available for the Read type.
-    fn unique_new(_component: UniqueComponent) -> Self {
+    fn unique_new(_component: Arc<SLock<Self::Component>>) -> Self {
         panic!("unique_new is not available for Read");
     }
 
@@ -282,7 +282,7 @@ impl<T: 'static + Send + Sync> Accessible for Write<T> {
     }
 
     /// This function is not available for the Read type.
-    fn unique_new(_component: UniqueComponent) -> Self {
+    fn unique_new(_component: Arc<SLock<Self::Component>>) -> Self {
         panic!("unique_new is not available for Read");
     }
 
@@ -306,38 +306,11 @@ impl<T: 'static + Send + Sync> Write<T> {
     } 
 }
 
-/// A type that allows read over the component a cross threads.
-pub struct UniqueReader<'a, T: 'static + Send + Sync> {
-    content: Arc<RwLock<Storage<T>>>,
-    _lifetime: PhantomData<&'a ()>
-}
-
-impl<'a, T: 'static + Send +Sync> UniqueReader<'a, T> {
-    /// Creates and returns a new instance of `Reader`.
-    /// 
-    /// # Arguments
-    /// 
-    /// `content` - The content to be referenced.
-    fn new(content: Arc<RwLock<Storage<T>>>) -> Self {
-        Self {
-            content,
-            _lifetime: PhantomData
-        }
-    }
-}
-
-impl<'a, T: 'static + Send + Sync> UniqueReader<'a, T> {
-    pub fn read(&self) -> RwLockReadGuard<'_, Storage<T>> {
-        self.content.read().unwrap()
-    }
-}
-
-
 /// Defines a data type which allows the user access a unique type in the 
 /// `World`.
 pub struct UniqueRead<T: 'static + Send + Sync> {
     /// A container for the component ref.
-    unique: UniqueComponent,
+    unique: Arc<SLock<T>>,
 
     /// Phantom data need in order to keep the T.
     _marker: PhantomData<T>
@@ -351,7 +324,7 @@ impl<T: 'static + Send + Sync> Accessible for UniqueRead<T> {
     }
 
     /// This function is not available for the Read type.
-    fn unique_new(component: UniqueComponent) -> Self {
+    fn unique_new(component: Arc<SLock<T>>) -> Self {
         Self {
             unique: component,
             _marker: PhantomData
@@ -362,13 +335,7 @@ impl<T: 'static + Send + Sync> Accessible for UniqueRead<T> {
 }
 
 impl<T: 'static + Send + Sync> UniqueRead<T> {
-    pub fn read(&self) -> UniqueReader<T> {
-        let u_clone = self.unique.clone();
-
-        guard!(let Ok(cast_point) = u_clone.downcast::<SLock<T>>() else {
-            panic!("Unable to cast from Unique to Arc<RwLock<Storage<T>>>");
-        });
-
-        UniqueReader::new(cast_point)
+    pub fn read(&self) -> RwLockReadGuard<'_, Storage<T>> {
+        self.unique.read().unwrap()
     }
 }
