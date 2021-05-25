@@ -36,26 +36,42 @@ where
         C: ComponentsHandler, E: EntitiesHandler
     >(self, components_handler: Arc<C>, entities_handler: Arc<E>) {
         let a_typeid = id_of::<A::Component>();
-        // Extract the id of A, in order to get the bitmask.
-        let a_bitmask = components_handler.bitmask(a_typeid); 
-        
-        // Generate a new buffer with all the entities that matches
-        // with this requirement.
-        let filtered_entities = Arc::new(
-            entities_handler.query_by_bitmask(a_bitmask)
-        );
 
-        // Get the component buffer of a.
-        guard!(let Some(a_b) = components_handler.component_buffer(&a_typeid) else {
-            panic!(
-                "The component {} does not exist",
-                type_name::<A::Component>()
+        let a: A;
+
+        // TODO: Check if we could avoid this using the compiler.
+        if A::is_unique() {
+            guard!(let Some(c) = components_handler.unique_component(&a_typeid) else {
+                panic!(
+                    "The component {} does not exist",
+                    type_name::<A::Component>()
+                );
+            });
+            a = A::unique_new(c);
+        } else {
+            // Extract the id of A, in order to get the bitmask.
+            let a_bitmask = components_handler.bitmask(a_typeid); 
+            
+            // Generate a new buffer with all the entities that matches
+            // with this requirement.
+            let filtered_entities = Arc::new(
+                entities_handler.query_by_bitmask(a_bitmask)
             );
-        });
-        
+
+            // Get the component buffer of a.
+            guard!(let Some(a_b) = components_handler.component_buffer(&a_typeid) else {
+                panic!(
+                    "The component {} does not exist",
+                    type_name::<A::Component>()
+                );
+            });
+
+            a = A::new(a_b, filtered_entities);
+        }
+
         // Create a new instance of Read or Write and and set inside it the
         // reference to the array and send the reference to the block vec.
-        (self)(A::new(a_b, filtered_entities));
+        (self)(a);
     }
 }
 
@@ -74,45 +90,72 @@ where
         $(
             paste! {
                 let [<$type _typeid>] = id_of::<$type::Component>();
-                // Extract the id of A, in order to get the bitmask.
-                let [<$type _bitmask>] = components_handler.bitmask([<$type _typeid>]); 
-                
+                let [<$type _var>]: $type;
             }
         )+
 
-        // Generate a new buffer with all the entities that matches
-        // with this requirement.
-        let filtered_entities = Arc::new(
-            entities_handler.query_by_bitmask(
-                $(
-                    paste! {
-                        [<$type _bitmask>]
-                    } |
-                )+ 
-                0x00               
-            )
-        );
+        
+        let mut bitmasks = 0x00;
 
         $(
-            paste! {
-                // Get the component buffer of a.
-                guard!(let Some([<$type _b>]) = components_handler.component_buffer(&[<$type _typeid>]) else {
-                    panic!(
-                        "The component {} does not exist",
-                        type_name::<$type::Component>()
-                    );
-                });
+            if !$type::is_unique() {
+                paste! {
+                    bitmasks |= components_handler.bitmask([<$type _typeid>]);
+                }
+            }
+        )+
+        
+
+        $(
+            if $type::is_unique() {
+                paste! {
+                    guard!(let Some(c) = components_handler.unique_component(&[<$type _typeid>]) else {
+                        panic!(
+                            "The component {} does not exist",
+                            type_name::<A::Component>()
+                        );
+                    });
+                }
+                
+                paste! {
+                    [<$type _var>] = $type::unique_new(c);
+                }
+            } else {
+                paste! {
+                    // Extract the id of A, in order to get the bitmask.
+                    let a_bitmask = components_handler.bitmask([<$type _typeid>]); 
+                
+                }
+               
+                // Generate a new buffer with all the entities that matches
+                // with this requirement.
+                let filtered_entities = Arc::new(
+                    entities_handler.query_by_bitmask(bitmasks)
+                );
+
+                paste! {
+                   // Get the component buffer of a.
+                    guard!(let Some(a_b) = components_handler.component_buffer(&[<$type _typeid>]) else {
+                        panic!(
+                            "The component {} does not exist",
+                            type_name::<A::Component>()
+                        );
+                    }); 
+                }
+                
+
+                paste! {
+                    [<$type _var>] = $type::new(a_b, filtered_entities);
+                }
             }
         )+
 
-        // Create a new instance of Read or Write and and set inside it the
-        // reference to the array and send the reference to the block vec.
         (self)(
             $(
                 paste! {
-                    $type::new([<$type _b>], filtered_entities.clone())
-                },
-            )+
+                    [<$type _var>]
+                }
+            ),+
         );
     }
 }

@@ -7,16 +7,14 @@ pub trait AnyStorage {}
 /// dev to implement a trait over their own components.
 pub struct Storage<T> {
     /// The component itself.
-    component: T
+    component: T,
 }
 
 impl<T> Storage<T> {
     /// Creates and returns a new storage which contains the provided
     /// component.
     pub(crate) fn new(component: T) -> Self {
-        Self {
-            component
-        }
+        Self { component }
     }
 }
 

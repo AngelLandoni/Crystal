@@ -10,6 +10,7 @@ use ecs::{
     SystemHandler,
     Entity,
     Read,
+    UniqueRead,
     Write,
     Searchable,
     TaskWaitable
@@ -20,6 +21,7 @@ struct Commander;
 struct IsPlayer;
 struct IsEnemy;
 struct CommnaderKeen;
+struct Renderer(f64);
 
 fn main() {
     let world = DefaultWorld::default();
@@ -28,6 +30,7 @@ fn main() {
     world.register::<Commander>();
     world.register::<Health>();
     world.register::<IsEnemy>();
+    world.register_unique(Renderer(33.0));
 
     world.add_entity((IsPlayer, Health(123)));
     world.add_entity((Commander, IsEnemy, Health(1)));
@@ -48,8 +51,15 @@ fn main() {
 
     (
         world.run(update_system),
+    ).wait();
+
+    (
         world.run(print_health_system),
         world.run(print_heath_and_isenemy_system)
+    ).wait();
+
+    (
+        world.run(test_renderer),
     ).wait();
 }
 
@@ -97,4 +107,11 @@ fn print_heath_and_isenemy_system(
     for (heath, _, _) in query {
         println!("health: {}", heath.read().0)
     }
+}
+
+fn test_renderer(
+    renderer: UniqueRead<Renderer>,
+    _enemies: Read<IsEnemy>) {
+
+    println!("Funcando! {}", renderer.read().read().0);
 }
