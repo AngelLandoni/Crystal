@@ -95,7 +95,7 @@ where
     >(self, components_handler: Arc<C>, entities_handler: Arc<E>) {
         $(
             paste! {
-                let g_typeid = id_of::<$type::Component>();
+                let [<$type _typeid>] = id_of::<$type::Component>();
                 let [<$type _var>]: $type;
             }
         )+

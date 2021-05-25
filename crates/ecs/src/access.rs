@@ -339,3 +339,37 @@ impl<T: 'static + Send + Sync> UniqueRead<T> {
         self.unique.read().unwrap()
     }
 }
+
+/// Defines a data type which allows the user access a unique type in the 
+/// `World`.
+pub struct UniqueWrite<T: 'static + Send + Sync> {
+    /// A container for the component ref.
+    unique: Arc<SLock<T>>,
+
+    /// Phantom data need in order to keep the T.
+    _marker: PhantomData<T>
+}
+
+impl<T: 'static + Send + Sync> Accessible for UniqueWrite<T> {
+    type Component = T;
+
+    fn new(_buffer: ComponentBuffer, _entities: Arc<Vec<Entity>>) -> Self {
+        panic!("new is not available for UniqueRead try with unique_new");
+    }
+
+    /// This function is not available for the Read type.
+    fn unique_new(component: Arc<SLock<T>>) -> Self {
+        Self {
+            unique: component,
+            _marker: PhantomData
+        }
+    }
+
+    fn is_unique() -> bool { true }
+}
+
+impl<T: 'static + Send + Sync> UniqueWrite<T> {
+    pub fn write(&self) -> RwLockWriteGuard<'_, Storage<T>> {
+        self.unique.write().unwrap()
+    }
+}

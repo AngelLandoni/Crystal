@@ -11,6 +11,7 @@ use ecs::{
     Entity,
     Read,
     UniqueRead,
+    UniqueWrite,
     Write,
     Searchable,
     TaskWaitable
@@ -56,6 +57,10 @@ fn main() {
     (
         world.run(print_health_system),
         world.run(print_heath_and_isenemy_system)
+    ).wait();
+
+    (
+        world.run(test_write_renderer),
     ).wait();
 
     (
@@ -114,4 +119,10 @@ fn test_renderer(
     _enemies: Read<IsEnemy>) {
 
     println!("Funcando! {}", renderer.read().0);
+}
+
+fn test_write_renderer(
+    renderer: UniqueWrite<Renderer>,
+    _enemies: Read<IsEnemy>) {
+    renderer.write().0 = 12223.0;
 }
