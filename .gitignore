@@ -2,6 +2,10 @@ debug/
 /target
 crates/tasks/target
 crates/ecs/target
+crates/engine/target
+crates/log/target
+crates/types/target
+crates/utils/target
 
 Cargo.lock
 **/*.rs.bk
