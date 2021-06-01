@@ -1,5 +1,5 @@
 [package]
-name = "engine"
+name = "types"
 version = "0.1.0"
 authors = ["Angel Landoni <angel.landoni.usa@gmail.com>"]
 edition = "2018"
@@ -7,10 +7,3 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-winit = "0.24.0"
-wgpu = "0.7.0"
-cgmath = "0.18.0"
-futures = "0.3.4"
-ecs = { path="../ecs" }
-types = { path="../types" }
-log = { path="../log" }
