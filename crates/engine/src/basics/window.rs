@@ -1,15 +1,13 @@
 
-/*use winit::{
+use winit::{
     event_loop::{EventLoop},
-    window::WindowBuilder,
-    dpi::LogicalPosition
+    window::WindowBuilder
 };
 
 use types::Size;
 
 use crate::{
-    helpers::errors::InitError,
-    scane::input::MousePosition
+    helpers::errors::InitError
 };
 
 pub enum CustomEvent {
@@ -50,17 +48,3 @@ impl Window {
         Ok((Window { size, native_window }, event_loop))
     }
 }
-
-impl Window {
-    /// Sets the positon of the cursor.
-    ///
-    /// # Arguments
-    ///
-    /// `position` - The new position for the cursor.
-    pub fn set_cursor_position(&self, position: &MousePosition) {
-        self.native_window.set_cursor_position(LogicalPosition::new(
-            position.x,
-            position.y
-        )).unwrap();
-    }
-}*/

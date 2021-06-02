@@ -1,4 +1,7 @@
 mod basics;
+mod helpers;
+
+mod init;
 
 use futures::executor::block_on;
 
@@ -10,6 +13,11 @@ use winit::{
 
 use ecs::DefaultWorld;
 use types::Size;
+
+use crate::{
+    basics::window::Window,
+    init::initialize_window
+};
 
 /// Defines the initial configuration for the application.
 pub struct InitialConfig {
@@ -45,8 +53,12 @@ pub type TickFn = fn(&DefaultWorld);
 async fn run(config: ConfigFn,
              tick: TickFn,
              app_config: InitialConfig) -> Result<(), String> {
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+    // Create the window.
+    let window_size: Size<u32> = app_config.window_size;
+    let (window, event_loop) = match initialize_window("Shiny", window_size) {
+        Ok(w) => w,
+        Err(e) => return Err(e.to_string())
+    };
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -55,10 +67,12 @@ async fn run(config: ConfigFn,
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 window_id,
-            } if window_id == window.id() => *control_flow = ControlFlow::Exit,
+            } if window_id == window.native_window.id() => *control_flow = ControlFlow::Exit,
             _ => (),
         }
     });
+
+    Ok(())
 }
 
 /// Runs the given program.

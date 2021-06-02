@@ -48,7 +48,7 @@ fn configure_application(world: &DefaultWorld) {
 /// # Arguments
 ///
 /// `world` - The world used to store and handle data.
-fn tick(world: &DefaultWorld) {
+fn tick(_world: &DefaultWorld) {
     info("Tick");
 }
 
@@ -67,6 +67,4 @@ fn main() {
         Ok(_) => return,
         Err(e) => println!("{}", e) 
     };
-
-    info("Stopped engine");
 }   
