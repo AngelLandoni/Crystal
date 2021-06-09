@@ -11,6 +11,7 @@ winit = "0.24.0"
 wgpu = "0.7.0"
 cgmath = "0.18.0"
 futures = "0.3.4"
+bytemuck = "1.5.1"
 ecs = { path="../ecs" }
 types = { path="../types" }
 log = { path="../log" }

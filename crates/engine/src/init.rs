@@ -9,7 +9,10 @@ use log::info;
 use crate::{
     basics::window::{Window, CustomEvent},
     helpers::errors::InitError,
-    graphics::gpu::Gpu
+    graphics::{
+        gpu::Gpu,
+        pipelines::bind_groups::locals_bind_group::initialize_locals
+    }
 };
 
 /// Creates and returns a new Window and EventLoop.
@@ -45,10 +48,10 @@ pub fn initialize_world(
 
     // initialize all the locals, this should be performed before the pipelines
     // due the pipelines will need the locals buffer.
-    /*initialize_locals(&gpu, &world);
+    initialize_locals(&gpu, &world);
 
     // Initialize basic pipelines.
-    initialize_pipelines(&gpu, &world);
+    /*initialize_pipelines(&gpu, &world);
 
     // Initialize egui.
     initialize_egui(&gpu, &window, &world, e_loop_proxy);

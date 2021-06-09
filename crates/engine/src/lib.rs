@@ -1,6 +1,7 @@
 mod basics;
 mod helpers;
 mod graphics;
+mod scene;
 
 mod init;
 
@@ -107,6 +108,7 @@ async fn run(config: ConfigFn,
 
             // Redraw
             Event::RedrawRequested(_) => {
+
                 // Send the flow to game lands.
                 tick(&world); 
             }            

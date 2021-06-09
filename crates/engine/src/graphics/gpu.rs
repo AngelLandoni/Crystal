@@ -34,14 +34,18 @@ use wgpu::{
     SamplerDescriptor,
     COPY_BUFFER_ALIGNMENT,
 
-    util::{ DeviceExt, BufferInitDescriptor }
+    util::{DeviceExt, BufferInitDescriptor}
 };
 
 use log::{info, error};
 
 use crate::{
     basics::window::Window,
-    helpers::errors::InitError
+    helpers::errors::InitError,
+    graphics::{
+        buffer::{BufferCreator, RawBufferRepresentable, BufferManipulator},
+        pipelines::bind_groups::BindGroupGenerator,
+    },
 };
 
 /// Contains all the configurations needed to create a Gpu.
@@ -203,4 +207,95 @@ impl Gpu {
     }
 }
 
+/// Provides to the Gpu aftraction the hability to handle bing groups.
+impl BindGroupGenerator for Gpu {
+    fn create_bind_group_layout(
+        &self,
+        descriptor: &BindGroupLayoutDescriptor) -> BindGroupLayout {
+        self.device.create_bind_group_layout(descriptor)
+    }
 
+    fn create_bind_group(
+        &self,
+        descriptor: &BindGroupDescriptor) -> BindGroup {
+       self.device.create_bind_group(descriptor) 
+    }
+}
+
+/// Provides to the Gpu aftraction the hability to create uniforms / buffers.
+///
+/// TODO(Angel): Avoid copy the data just pass a reference.
+impl BufferCreator for Gpu {
+    /// Creates and returns a new vertex buffer after submit to Gpu.
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - The raw buffer representable data used to create the buffer.
+    fn create_vertex<T: RawBufferRepresentable>(&self, data: T) -> Buffer {
+        self.device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Vertex buffer"),
+            contents: data.get_raw().content(),
+            usage: BufferUsage::VERTEX
+        })
+    }
+
+    /// Creates and returns a buffer of the specific size provided.
+    fn create_vertex_with_size(&self, size: u64) -> Buffer {
+        // Convert the size from the provided one into one that WGPU handles.
+        let unpadded_size: BufferAddress = size as BufferAddress;
+        // Make sure the size is 4 bytes aligned.
+        let padding: BufferAddress = 
+            COPY_BUFFER_ALIGNMENT -
+            unpadded_size %
+            COPY_BUFFER_ALIGNMENT; 
+        
+        // Final padding, the size now is memory aligned.
+        let padded_size: BufferAddress = unpadded_size + padding;
+
+        // Define the descriptor that contains all the information neeeded
+        // to allocate the buffer.
+        let descriptor: BufferDescriptor = BufferDescriptor {
+            label: None,
+            size: padded_size,
+            usage: BufferUsage::VERTEX | BufferUsage::COPY_DST,
+            mapped_at_creation: true
+        };
+
+        let buffer: Buffer = self.device.create_buffer(&descriptor);
+
+        {
+            let mut slice = buffer.slice(..).get_mapped_range_mut();
+            for i in 0..padded_size {
+                slice[i as usize] = 0;
+            }
+        }
+
+        buffer.unmap();
+        buffer
+    }
+
+    /// Creates and returns a new index buffer after submit to GPU.
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - The raw buffer representable used to create the buffer.
+    fn create_index<T: RawBufferRepresentable>(&self, data: T) -> Buffer {
+        self.device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Index buffer"),
+            contents: data.get_raw().content(),
+            usage: BufferUsage::INDEX
+        })
+    }
+
+    /// Creates and returns a new uniform buffer.
+    ///
+    /// TODO(Angel): Add the usage, for not it is only copy dst so we cannot
+    /// read from there just save.
+    fn create_uniform<T: RawBufferRepresentable>(&self, data: T) -> Buffer {
+        self.device.create_buffer_init(&BufferInitDescriptor{
+            label: None,
+            contents: data.get_raw().content(),
+            usage: BufferUsage::UNIFORM | BufferUsage::COPY_DST
+        })
+    }
+}
