@@ -7,7 +7,7 @@ use engine::{
 
 use ecs::{DefaultWorld, ComponentHandler};
 
-use log::info;
+use log::{info, warning};
 
 /// Represents a debug camera.
 pub struct FlyCamera {
@@ -45,7 +45,7 @@ fn configure_application(world: &DefaultWorld) {
 ///
 /// `world` - The world used to store and handle data.
 fn tick(_world: &DefaultWorld) {
-    info("Tick");
+    warning("Tick");
 }
 
 /// Application entry point.

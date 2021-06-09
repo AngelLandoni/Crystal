@@ -2,6 +2,7 @@ use crossbeam_queue::SegQueue;
 
 use std::{
     fmt::{Debug, Formatter, Result},
+    any::type_name,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
@@ -9,9 +10,11 @@ use std::{
 };
 
 use tasks::{Dispatcher, Workers};
+use log::error;
 
 use crate::{
     bundle::ComponentBundler,
+    access::{Accessible, SLock},
     component::{
         ComponentHandler,
         ComponentsHandler,
@@ -164,6 +167,56 @@ impl<
         let id = id_of::<C0>();
         // Register the component.
         self.components_storage.register_unique(id, c);
+    }
+
+    /// Borrows a reference to the component.
+    fn get<T: 'static + Accessible>(&self) -> T 
+    where 
+        <T as Accessible>::Component: Sync + Send
+    {
+        let t_typeid = id_of::<T::Component>();
+        let t: T;
+
+        if T::is_unique() {
+            guard!(let Some(c) = self.components_storage.unique_component(&t_typeid) else {
+                error(
+                    &format!(
+                        "The component {} does not exist",
+                        type_name::<T::Component>()
+                    ).to_string()
+                );
+                panic!();
+            });
+            guard!(let Ok(c_downcasted) = c.downcast::<SLock<T::Component>>() else {
+                error("Error casting Arc pointer");
+                panic!();
+            });
+            t = T::unique_new(c_downcasted);
+        } else {
+            // Extract the id of A, in order to get the bitmask.
+            let a_bitmask = self.components_storage.bitmask(t_typeid); 
+            
+            // Generate a new buffer with all the entities that matches
+            // with this requirement.
+            let filtered_entities = Arc::new(
+                self.entities_storage.query_by_bitmask(a_bitmask)
+            );
+
+            // Get the component buffer of a.
+            guard!(let Some(a_b) = self.components_storage.component_buffer(&t_typeid) else {
+                error(
+                    &format!(
+                        "The component {} does not exist",
+                    type_name::<T::Component>()
+                    ).to_string()
+                );
+                panic!();
+            });
+
+            t = T::new(a_b, filtered_entities);
+        }
+
+        t
     }
 }
 

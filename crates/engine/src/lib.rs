@@ -12,7 +12,11 @@ use winit::{
     window::WindowBuilder,
 };
 
-use ecs::DefaultWorld;
+use ecs::{
+    ComponentHandler,
+    DefaultWorld,
+    UniqueRead
+};
 use types::Size;
 use log::{Log, Console, info};
 
@@ -88,7 +92,7 @@ async fn run(config: ConfigFn,
     };
 
     // Create a new world an inject the basic resources.
-    let mut world = initialize_world(gpu, window, event_loop.create_proxy());
+    let world = initialize_world(gpu, window, event_loop.create_proxy());
 
     info("Entering main run loop");
     // Trigger the main run loop.
@@ -96,10 +100,15 @@ async fn run(config: ConfigFn,
         *control_flow = ControlFlow::Poll;
 
         match event {
+            Event::MainEventsCleared => {
+                let window = world.get::<UniqueRead<Window>>();
+                window.read().native_window.request_redraw();
+            }
+
             // Redraw
             Event::RedrawRequested(_) => {
                 // Send the flow to game lands.
-                //tick(&world);    
+                tick(&world); 
             }            
 
             // We do not care about the rest of events.

@@ -109,6 +109,11 @@ pub trait ComponentHandler {
 
     /// An aftraction used to register unique components.
     fn register_unique<C0: 'static + Send + Sync>(&self, c: C0);
+
+    /// An aftraction used to regurn an specific unique.
+    fn get<T: 'static + Accessible>(&self) -> T 
+        where 
+            <T as Accessible>::Component: Sync + Send;
 }
 
 /// Provides an aftraction to handle components.

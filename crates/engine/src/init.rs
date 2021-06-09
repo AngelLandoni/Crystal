@@ -40,7 +40,7 @@ pub fn initialize_world(
     e_loop_proxy: EventLoopProxy<CustomEvent>) -> DefaultWorld {
     info("Initializing world");
 
-    // Creates a mutable world.
+    // Creates a mutable wo =rld.
     let world: DefaultWorld = DefaultWorld::default();
 
     // initialize all the locals, this should be performed before the pipelines
