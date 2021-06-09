@@ -1,11 +1,16 @@
-use cgmath::Vector3;
+use cgmath::{Vector3, Quaternion};
 
 use engine::{
+    scene::components::{Voxel, Transform},
     run_program,
     InitialConfig
 };
 
-use ecs::{DefaultWorld, ComponentHandler};
+use ecs::{
+    DefaultWorld,
+    ComponentHandler,
+    EntityHandler
+};
 
 use log::info;
 
@@ -37,6 +42,27 @@ impl Default for FlyCamera {
 fn configure_application(world: &DefaultWorld) {
     // Adds the fly camera information.
     world.register_unique(FlyCamera::default());
+
+    for i in 1..10 {
+        for j in 1..10 {
+            let transform = Transform {
+                position: Vector3 {
+                    x: 2.0 * (i as f32),
+                    y: 0.0,
+                    z: 2.0 * (j as f32)
+                },
+                scale: Vector3 { x: 1.0, y: 1.0, z: 1.0 },
+                rotation: Quaternion { 
+                    v: Vector3 { x: 0.0, y: 0.0, z: 0.0 },
+                    s: 0.0
+                }
+            };
+            world.add_entity((
+                Voxel::rand_color(),
+                transform
+            ));
+        }
+    }
 }
 
 /// Executes the application logic.

@@ -13,7 +13,7 @@ pub struct Storage<T> {
 impl<T> Storage<T> {
     /// Creates and returns a new storage which contains the provided
     /// component.
-    pub(crate) fn new(component: T) -> Self {
+    pub fn new(component: T) -> Self {
         Self { component }
     }
 }

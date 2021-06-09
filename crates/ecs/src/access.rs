@@ -161,6 +161,11 @@ impl<T: 'static + Send + Sync> Read<T> {
             _marker: PhantomData
         }
     } 
+
+    /// Retuns the nuber of entities which have the associated component T.
+    pub fn len(&self) -> usize {
+        self.entities.len()
+    }
 }
 
 /// Write access

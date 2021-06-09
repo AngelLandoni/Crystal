@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use wgpu::{
     Device,
     Queue,
@@ -43,8 +45,10 @@ use crate::{
     basics::window::Window,
     helpers::errors::InitError,
     graphics::{
+        shaders::{ShaderGenerator, ShaderProvider},
         buffer::{BufferCreator, RawBufferRepresentable, BufferManipulator},
         pipelines::bind_groups::BindGroupGenerator,
+        texture::{Texture, TextureGenerator, DepthTexture, DEPTH_FORMAT},
     },
 };
 
@@ -207,6 +211,23 @@ impl Gpu {
     }
 }
 
+impl Gpu {
+    /// Returns the swap chain preferred format.
+    pub fn swap_chain_format(&self) -> TextureFormat {
+        self.adapter.get_swap_chain_preferred_format(&self.surface)
+    }
+
+    /// Creates and returns ¡a new render pipeline.
+    ///
+    /// # Arguments
+    ///
+    /// * `descriptor` - The descriptor used to create the pipeline.
+    pub fn create_render_pipeline(&self,
+        descriptor: &RenderPipelineDescriptor) -> RenderPipeline {
+        self.device.create_render_pipeline(descriptor) 
+    }
+}
+
 /// Provides to the Gpu aftraction the hability to handle bing groups.
 impl BindGroupGenerator for Gpu {
     fn create_bind_group_layout(
@@ -297,5 +318,106 @@ impl BufferCreator for Gpu {
             contents: data.get_raw().content(),
             usage: BufferUsage::UNIFORM | BufferUsage::COPY_DST
         })
+    }
+}
+
+/// Provides to the Gpu aftraction the hability to handle shaders.
+impl ShaderGenerator for Gpu {
+    /// Creates and returns a new shader module.
+    ///
+    /// # Arguments
+    ///
+    /// * `source` - The Shader source to be compiled.
+    fn create_shader(&self, source: &ShaderProvider) -> ShaderModule {
+        let w_source: wgpu::ShaderSource = match source { 
+            ShaderProvider::Wgsl(s) => ShaderSource::Wgsl(Cow::Borrowed(&s)),
+            ShaderProvider::Glsl(_) => {
+                panic!("Not implemeneted yet");
+            },
+        };
+
+        self.device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: w_source,
+            flags: wgpu::ShaderFlags::all()
+        }) 
+    }  
+}
+
+/// Provides to the Gpu the aftraction to manipulate Gpu buffers.
+impl BufferManipulator for Gpu {
+    /// Copy the provided data into the GPU buffer.
+    ///
+    /// # Arguments
+    ///
+    /// `buffer` - The dest where to paste the data.
+    /// `data` - The data to be copied.
+    ///
+    /// TODO(Angel): Create a more complex data structure to write an specific
+    /// chunk of the buffer.
+    fn copy_to_buffer(&self, buffer: &Buffer, data: &[u8]) {
+        self.queue.write_buffer(buffer, 0, data);
+    }
+}
+
+/// Provides to the Gpu the aftraction to manipualte textures on GPU.
+impl TextureGenerator for Gpu {
+    /// Creates and returns a new depth texture.
+    fn create_depth_texture(&self) -> Texture {
+        // Defines the size of the depth texture, in this case it should be
+        // of the size of the entire screen or the swap chain.
+        let size: Extent3d = Extent3d {
+            width: self.swap_chain_descriptor.width,
+            height: self.swap_chain_descriptor.height,
+            depth: 1
+        };
+
+        // Create the wgpu texture descriptor. 
+        let descriptor: TextureDescriptor = TextureDescriptor {
+            label: None,
+            // The size of the texture.
+            size,
+            // We only need 1 texture mip level (texture could have different
+            // resolutions in order to be used at different distances).
+            mip_level_count: 1,
+            // No idea.
+            sample_count: 1,
+            // The texture is 2D.
+            dimension: TextureDimension::D2,
+            // We want a depth format.
+            format: DEPTH_FORMAT,
+            // We need render to the texture so RENDER_ATTACHMEN comes in 
+            // place, sampled due the data could be extracted using a sampler.
+            usage: TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED
+        };
+
+        // Create the gpu texture.
+        let raw_texture: wgpu::Texture = self.device.create_texture(&descriptor);
+    
+        // Create the view for the texture.
+        let view: TextureView = raw_texture.create_view(
+            &TextureViewDescriptor::default()
+        );
+
+        let sampler: Sampler = self.device.create_sampler(
+            &SamplerDescriptor { // 4.
+                address_mode_u: wgpu::AddressMode::ClampToEdge,
+                address_mode_v: wgpu::AddressMode::ClampToEdge,
+                address_mode_w: wgpu::AddressMode::ClampToEdge,
+                mag_filter: wgpu::FilterMode::Linear,
+                min_filter: wgpu::FilterMode::Linear,
+                mipmap_filter: wgpu::FilterMode::Nearest,
+                compare: Some(wgpu::CompareFunction::LessEqual), // 5.
+                lod_min_clamp: -100.0,
+                lod_max_clamp: 100.0,
+                ..Default::default()
+            }
+        );
+
+        Texture {
+            raw_texture,
+            view,
+            sampler
+        }
     }
 }

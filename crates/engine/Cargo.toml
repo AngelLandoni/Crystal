@@ -12,6 +12,8 @@ wgpu = "0.7.0"
 cgmath = "0.18.0"
 futures = "0.3.4"
 bytemuck = "1.5.1"
+rand = "0.8.0"
+crossbeam-queue = "0.3"
 ecs = { path="../ecs" }
 types = { path="../types" }
 log = { path="../log" }

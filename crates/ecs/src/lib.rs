@@ -1,5 +1,4 @@
 mod type_id;
-mod storage;
 mod bundle;
 mod consts;
 
@@ -23,6 +22,9 @@ pub use system::{System, SystemHandler};
 
 mod access;
 pub use access::{Read, Write, UniqueRead, UniqueWrite, Accessible};
+
+mod storage;
+pub use storage::Storage;
 
 extern crate fxhash;
 #[macro_use] extern crate guard;

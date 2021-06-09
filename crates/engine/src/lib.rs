@@ -1,9 +1,11 @@
 mod basics;
 mod helpers;
 mod graphics;
-mod scene;
+mod workloads;
 
 mod init;
+
+pub mod scene;
 
 use futures::executor::block_on;
 
@@ -24,7 +26,8 @@ use log::{Log, Console, info};
 use crate::{
     basics::window::Window,
     graphics::gpu::Gpu,
-    init::{initialize_window, initialize_world}
+    init::{initialize_window, initialize_world},
+    workloads::{Workloads, run_workload}
 };
 
 /// Defines the initial configuration for the application.
@@ -94,6 +97,9 @@ async fn run(config: ConfigFn,
 
     // Create a new world an inject the basic resources.
     let world = initialize_world(gpu, window, event_loop.create_proxy());
+    
+    // Configures the user's application.
+    config(&world);
 
     info("Entering main run loop");
     // Trigger the main run loop.
@@ -108,9 +114,15 @@ async fn run(config: ConfigFn,
 
             // Redraw
             Event::RedrawRequested(_) => {
-
+                // Run the render workload.
+                run_workload(Workloads::Start, &world);
                 // Send the flow to game lands.
-                tick(&world); 
+                tick(&world);    
+                // Render and sync everything else.
+                run_workload(Workloads::Synchronize, &world);
+                run_workload(Workloads::Render, &world);
+                run_workload(Workloads::Commit, &world);
+                run_workload(Workloads::End, &world);
             }            
 
             // We do not care about the rest of events.
