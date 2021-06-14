@@ -23,7 +23,7 @@ use crate::{
     },
     entity::{EntitiesHandler, EntitiesStorage, Entity, EntityHandler},
     sync::TaskSync,
-    system::{System, SystemHandler},
+    system::{System, DataSystem, SystemHandler},
     type_id::id_of,
 };
 
@@ -243,6 +243,14 @@ impl<
     E: EntitiesHandler + Send + Sync + 'static>
     SystemHandler for World<H, E>
 {
+    /// Runs a system providing it with data.
+    ///
+    /// Take in consideration that data will be moved.
+    ///
+    /// # Arguments
+    ///
+    /// `system` - The system to be executed.
+    /// `data` - The data that will be send to the system.
     fn run<B: ComponentBundler, Sys: System<B> + 'static + Send + Sync>(
         &self,
         system: Sys,
@@ -256,9 +264,43 @@ impl<
         let task_sync = Arc::new(TaskSync::default());
         let task_sync_copy = task_sync.clone();
 
-        // This must by run in a worker thread.
+        // This must by run in a worker thread in order to provide
+        // async by default.
         self.workers.execute_dyn(Box::new(move || {
             system.run(c_s_copy, e_s_copy);
+            task_sync_copy.mark_as_finish();
+        }));
+
+        task_sync
+    }
+
+    /// Runs a system providing it with data.
+    ///
+    /// Take in consideration that data will be moved.
+    ///
+    /// # Arguments
+    ///
+    /// `system` - The system to be executed.
+    /// `data` - The data that will be send to the system.
+    fn run_with_data<
+        B: ComponentBundler,
+        S: DataSystem<B, D> + 'static + Send + Sync,
+        D: 'static + Send
+    >(&self, system: S, data: D) -> Arc<TaskSync> 
+    {
+        // Get a clone of the storages in order to send them to the
+        // queue.
+        let c_s_copy = self.components_storage.clone();
+        let e_s_copy = self.entities_storage.clone();
+
+        // Generate a signal in order to know when the task finish.
+        let task_sync = Arc::new(TaskSync::default());
+        let task_sync_copy = task_sync.clone();
+
+        // This must by run in a worker thread in order to provide
+        // async by default.
+        self.workers.execute_dyn(Box::new(move || {
+            system.run_with_data(c_s_copy, e_s_copy, data);
             task_sync_copy.mark_as_finish();
         }));
 

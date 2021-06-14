@@ -6,28 +6,45 @@ mod workloads;
 mod init;
 
 pub mod scene;
+pub use scene::{
+    camera::Camera,
+    input::{Input, Direction, KeyCode, InputEvent}
+};
+
+pub use cgmath;
 
 use futures::executor::block_on;
 
 use winit::{
-    event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
+    event::{Event, WindowEvent, KeyboardInput, ElementState, DeviceEvent},
 };
 
 use ecs::{
     ComponentHandler,
     DefaultWorld,
-    UniqueRead
+    UniqueRead,
+    SystemHandler
 };
 use types::Size;
 use log::{Log, Console, info};
 
 use crate::{
-    basics::window::Window,
-    graphics::gpu::Gpu,
+    basics::window::{Window, update_window_with_new_size_system},
+    graphics::gpu::{Gpu, update_gpu_with_new_size_system},
     init::{initialize_window, initialize_world},
-    workloads::{Workloads, run_workload}
+    workloads::{Workloads, run_workload},
+    scene::{
+        input::{
+            Motion,
+            WInitInputEvent,
+            map_input_event,
+            update_input_system,
+            update_mouse_position_system
+        },
+        camera::update_camera_resize_system
+    }
 };
 
 /// Defines the initial configuration for the application.
@@ -61,6 +78,9 @@ impl Default for InitialConfig {
 /// Defines the callback for the configuration.
 pub type ConfigFn = fn(&DefaultWorld);
 
+/// Defines the input event callback.
+pub type InputEventFn = fn(&InputEvent, &DefaultWorld); 
+
 /// Defines the callback for the run per frame.
 pub type TickFn = fn(&DefaultWorld);
 
@@ -78,6 +98,7 @@ fn initializes_log() {
 /// `tick` - The tick callback.
 /// `app_config` - The app configuration.
 async fn run(config: ConfigFn,
+             input: InputEventFn,
              tick: TickFn,
              app_config: InitialConfig) -> Result<(), String> {
     info("Initialize window and input handlers");
@@ -97,7 +118,7 @@ async fn run(config: ConfigFn,
 
     // Create a new world an inject the basic resources.
     let world = initialize_world(gpu, window, event_loop.create_proxy());
-    
+
     // Configures the user's application.
     config(&world);
 
@@ -107,9 +128,85 @@ async fn run(config: ConfigFn,
         *control_flow = ControlFlow::Poll;
 
         match event {
+
             Event::MainEventsCleared => {
                 let window = world.get::<UniqueRead<Window>>();
                 window.read().native_window.request_redraw();
+            }
+
+            // Events
+            Event::WindowEvent { event, .. } => match event {
+                
+                WindowEvent::Resized(size) => {
+                    let new_aspect = size.width as f32 / size.height as f32;
+                    let size = Size::new(size.width, size.height);
+                    world.run_with_data(
+                        update_camera_resize_system,
+                        new_aspect
+                    );
+                    world.run_with_data(
+                        update_window_with_new_size_system,
+                        size.clone()
+                    );
+                    world.run_with_data(
+                        update_gpu_with_new_size_system,
+                        size 
+                    ); 
+                }
+
+                // User input down.
+                WindowEvent::KeyboardInput {
+                    input: KeyboardInput {
+                    virtual_keycode: Some(virtual_code),
+                    state: ElementState::Pressed,
+                    ..
+                },
+                ..
+                } => {
+                    let event = map_input_event(WInitInputEvent::KeyDown(virtual_code));
+                    world.run_with_data(update_input_system, event);
+                } 
+
+                // User input up.
+                WindowEvent::KeyboardInput {
+                    input: KeyboardInput {
+                    virtual_keycode: Some(virtual_code),
+                    state: ElementState::Released,
+                    ..
+                },
+                ..
+                } => {
+                    let event = map_input_event(WInitInputEvent::KeyUp(virtual_code));
+                    world.run_with_data(update_input_system, event);
+                }
+
+                WindowEvent::CursorMoved { position, .. } => {
+                    world.run_with_data(update_mouse_position_system, (position.x, position.y));
+                }
+
+                WindowEvent::CloseRequested => {
+                    *control_flow = ControlFlow::Exit
+                }
+
+                _ => {}
+            }
+
+            Event::DeviceEvent { event, .. } => match event {
+                
+                // Maps the motion event to a engine compatible event.
+                DeviceEvent::Motion {axis, value} => {
+                    // Map the raw event to a typed one.
+                    let direction = Direction::from_raw(axis, value);
+                    input(
+                        &InputEvent::MouseMotion(
+                            direction,
+                            Motion(value.abs())
+                        ),
+                        &world
+                    );
+                }
+
+                _ => {}
             }
 
             // Redraw
@@ -139,13 +236,14 @@ async fn run(config: ConfigFn,
 /// `input_event` - The function used to react to events.
 /// `tick` - The funtion executed every frame.
 pub fn run_program(config: ConfigFn,
+                   input: InputEventFn,
                    tick: TickFn,
                    app_config: InitialConfig) -> Result<(), String> {
     // Initialize the log only on debug mode.
-    if cfg!(debug_assertions) || app_config.force_log {
+    //if cfg!(debug_assertions) || app_config.force_log {
         initializes_log();
-    }
+    //}
 
     // Run the engine and lock the program there.
-    block_on(run(config, tick, app_config))
+    block_on(run(config, input, tick, app_config))
 }

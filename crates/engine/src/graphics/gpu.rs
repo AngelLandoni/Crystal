@@ -39,7 +39,9 @@ use wgpu::{
     util::{DeviceExt, BufferInitDescriptor}
 };
 
+use ecs::{UniqueRead, UniqueWrite};
 use log::{info, error};
+use types::Size;
 
 use crate::{
     basics::window::Window,
@@ -420,4 +422,23 @@ impl TextureGenerator for Gpu {
             sampler
         }
     }
+}
+
+/// Updates the Gpu with the new size provided.
+pub fn update_gpu_with_new_size_system(
+    size: Size<u32>,
+    gpu: UniqueWrite<Gpu>,
+    depth_texture: UniqueWrite<DepthTexture>) {
+    
+    let mut gpu_w = gpu.write();
+
+    gpu_w.swap_chain_descriptor.width = size.width;
+    gpu_w.swap_chain_descriptor.height = size.height;
+
+    gpu_w.swap_chain = gpu_w.device.create_swap_chain(
+        &gpu_w.surface,
+        &gpu_w.swap_chain_descriptor
+    );
+
+    depth_texture.write().0 = gpu_w.create_depth_texture();
 }

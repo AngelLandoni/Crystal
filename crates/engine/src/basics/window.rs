@@ -4,6 +4,7 @@ use winit::{
     window::WindowBuilder
 };
 
+use ecs::UniqueWrite;
 use types::Size;
 
 use crate::{
@@ -47,4 +48,14 @@ impl Window {
         // Return the result window.
         Ok((Window { size, native_window }, event_loop))
     }
+}
+
+/// Updates the window with the new size information.
+pub fn update_window_with_new_size_system(
+    size: Size<u32>,
+    window: UniqueWrite<Window>) {
+    let mut window_w = window.write();
+    // Update window size.    
+    window_w.size.width = size.width;
+    window_w.size.height = size.height;
 }

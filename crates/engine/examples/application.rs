@@ -1,18 +1,25 @@
-use cgmath::{Vector3, Quaternion};
+use std::f64::consts::PI;
 
 use engine::{
     scene::components::{Voxel, Transform},
     run_program,
-    InitialConfig
+    InitialConfig,
+    KeyCode,
+    Direction,
+    Input,
+    InputEvent,
+    Camera,
+    cgmath::{Vector3, Point3, Rad, Angle, Quaternion}
 };
 
 use ecs::{
     DefaultWorld,
     ComponentHandler,
-    EntityHandler
+    EntityHandler,
+    UniqueRead,
+    UniqueWrite,
+    SystemHandler
 };
-
-use log::info;
 
 /// Represents a debug camera.
 pub struct FlyCamera {
@@ -33,6 +40,114 @@ impl Default for FlyCamera {
         }
     }
 }
+
+const MOVEMENT_SPEED: f32 = 0.1;
+const MOUSE_SENSIBILITY: f64 = 0.01;
+
+pub fn input_camera_system(input: UniqueRead<Input>,
+                           camera: UniqueWrite<Camera>,
+                           fly_camera: UniqueRead<FlyCamera>) {
+    let input_r = input.read();
+    let fly_camera_r = fly_camera.read();
+    let mut camera_w = camera.write();
+
+    
+  
+    if input_r.keys_down.contains(&KeyCode::A) {
+        let movement = fly_camera_r.right_direction * MOVEMENT_SPEED;
+        camera_w.eye -= movement;
+        camera_w.target -= movement;
+    }
+
+    if input_r.keys_down.contains(&KeyCode::D) {
+        let movement = fly_camera_r.right_direction * MOVEMENT_SPEED;
+        camera_w.eye += movement;
+        camera_w.target += movement;
+    }
+
+    if input_r.keys_down.contains(&KeyCode::W) {
+        let movement = fly_camera_r.direction * MOVEMENT_SPEED;
+        camera_w.eye += movement; 
+        camera_w.target += movement;
+    }
+
+    if input_r.keys_down.contains(&KeyCode::S) {
+        let movement = fly_camera_r.direction * MOVEMENT_SPEED;
+        camera_w.eye -= movement;
+        camera_w.target -= movement; 
+    }
+
+    println!("DDDD {:?}", camera_w.view_projection());
+}
+
+pub fn calculate_input_fly_camera(data: (Direction, f64),
+                                  input: UniqueRead<Input>,
+                                  fly_camera: UniqueWrite<FlyCamera>,
+                                  camera: UniqueWrite<Camera>) {
+
+    let input_r = input.read();
+    let mut fly_camera_w = fly_camera.write();
+    let mut camera_w = camera.write();
+
+    // Ignore mouse if there is not position movement.
+    if !input_r.keys_down.contains(&KeyCode::A) &&
+        !input_r.keys_down.contains(&KeyCode::D) &&
+        !input_r.keys_down.contains(&KeyCode::W) &&
+        !input_r.keys_down.contains(&KeyCode::S) {
+        return;
+    }
+
+    // Check the direction of the rotation.
+    match data.0 {
+        Direction::Left => fly_camera_w.yaw += data.1 * 0.01,
+        Direction::Right => fly_camera_w.yaw -= data.1 * 0.01,
+        Direction::Top => {
+            // Avoid rotation over 90 degs.
+            if fly_camera_w.pitch < PI.floor() / 2.0 {
+                fly_camera_w.pitch += data.1 * MOUSE_SENSIBILITY;
+            } else {
+                fly_camera_w.pitch = PI.floor() / 2.0;
+            }
+        }
+        Direction::Bottom => {
+            // Avoid rotation below 240 ges.
+            if fly_camera_w.pitch > -PI.floor() / 2.0 { 
+                fly_camera_w.pitch -= data.1 * MOUSE_SENSIBILITY;
+            } else {
+                fly_camera_w.pitch = -PI.floor() / 2.0;
+            }
+        }
+    }
+
+    let yaw_radians = Rad(fly_camera_w.yaw as f32);
+    let pitch_radians = Rad(fly_camera_w.pitch as f32);
+
+    let direction = Vector3 {
+        x: Rad::sin(yaw_radians) * Rad::cos(pitch_radians),
+        y: Rad::sin(pitch_radians),
+        z: Rad::cos(yaw_radians) * Rad::cos(pitch_radians)
+    };
+ 
+    fly_camera_w.direction = direction;
+
+    // Move the camera target.
+    camera_w.target = Point3 { 
+        x: direction.x + camera_w.eye.x,
+        y: direction.y + camera_w.eye.y,
+        z: direction.z + camera_w.eye.z
+    }; 
+
+    // Calculate the horizontal parallel direction.
+
+    let parallel_direction = Vector3 {
+        x: Rad::sin(Rad(fly_camera_w.yaw - PI / 2.0)) as f32,
+        y: 0.0,
+        z: Rad::cos(Rad(fly_camera_w.yaw - PI / 2.0)) as f32
+    };
+
+    fly_camera_w.right_direction = parallel_direction;
+}
+
 
 /// Configures the application.
 ///
@@ -65,13 +180,30 @@ fn configure_application(world: &DefaultWorld) {
     }
 }
 
+/// Handles all the input events.
+///
+/// # Arguments
+///
+/// `world` - The world used to store and handle data.
+fn input(event: &InputEvent, world: &DefaultWorld) {
+    match event {
+            InputEvent::MouseMotion(direction, value) => {
+                world.run_with_data(
+                    calculate_input_fly_camera,
+                    (direction.clone(), value.0)
+                );
+        }
+        _ => ()
+    }
+}
+
 /// Executes the application logic.
 ///
 /// # Arguments
 ///
 /// `world` - The world used to store and handle data.
-fn tick(_world: &DefaultWorld) {
-    info("Tick");
+fn tick(world: &DefaultWorld) {
+    world.run(input_camera_system);
 }
 
 /// Application entry point.
@@ -79,6 +211,7 @@ fn main() {
     // Trigger application main loop.
     match run_program(
         configure_application,
+        input,
         tick,
         InitialConfig::default()
     ) {

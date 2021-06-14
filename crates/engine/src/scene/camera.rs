@@ -101,8 +101,9 @@ pub fn mantain_camera_buffer_system(
     gpu: UniqueRead<Gpu>,
     camera: UniqueRead<Camera>,
     locals_buffer: UniqueRead<LocalsBuffer>) {
+    let camera_r = camera.read();
     // Create a new enconder.
-    let view_projection: [[f32; 4]; 4] = array4x4(camera.read().view_projection());
+    let view_projection: [[f32; 4]; 4] = array4x4(camera_r.view_projection());
     let view_projection_bytes: &[u8] = bytemuck::cast_slice(&view_projection);
 
     gpu
@@ -114,7 +115,7 @@ pub fn mantain_camera_buffer_system(
 /// Updates the camera aspect.
 pub fn update_camera_resize_system(
     new_aspect: f32,
-    mut camera: UniqueWrite<Camera>) {
+    camera: UniqueWrite<Camera>) {
     // Access to the camera resource and updates the aspect.
     camera.write().aspect = new_aspect;
 }

@@ -21,7 +21,10 @@ use crate::{
         CommandBufferQueue,
         MAX_NUMBER_OF_COMMANDS_PER_CALL
     },
-    scene::camera::Camera
+    scene::{
+        input::{Input, MousePosition},
+        camera::Camera
+    }
 };
 
 /// Only local just to not write long lines.
@@ -96,10 +99,10 @@ pub fn initialize_world(
     
     // Create a new default input, this contains the actual input state, which
     // keys are pressed.
-    /*world.add_unique(Input::default()).unwrap();
+    world.register_unique(Input::default());
     
     // Create a new MousePosition this contains the actual mouse position.
-    world.add_unique(MousePosition::default()).unwrap();*/
+    world.register_unique(MousePosition::default());
 
     info("World initialized");
 
