@@ -36,7 +36,7 @@ use crate::{
     basics::window::{Window, update_window_with_new_size_system},
     graphics::{
         gpu::{Gpu, update_gpu_with_new_size_system},
-        egui::mantain_egui_events_system
+        egui::mantain_egui_events
     },
     init::{initialize_window, initialize_world},
     workloads::{Workloads, run_workload},
@@ -131,8 +131,8 @@ async fn run(config: ConfigFn,
     // Trigger the main run loop.
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
-
-        //world.run_sync_with_data(mantain_egui_events_system, &event);
+        
+        mantain_egui_events(&event, &world);
 
         match event {
 

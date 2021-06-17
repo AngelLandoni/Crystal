@@ -23,16 +23,16 @@ use crate::{
 };
 
 pub fn egui_renderer_system(
-    gpu: UniqueWrite<Gpu>,
+    gpu: UniqueRead<Gpu>,
     window: UniqueRead<Window>,
     egui: UniqueWrite<EGui>,
     dev_gui: UniqueRead<DevGui>,
     repaint_signal: UniqueRead<EGuiRepaintSignal>,
     current_frame: UniqueRead<CurrentSwapChainOutput>,
     command_buffer: UniqueRead<CommandBufferQueue>) {
-    let mut gpu_w = gpu.write();
+    let gpu_r = gpu.read();
     let mut egui_w = egui.write();
-    
+
     let dev_gui_r = dev_gui.read();
     let window_r = window.read();
     let repaint_signal_r = repaint_signal.read();
@@ -66,7 +66,7 @@ pub fn egui_renderer_system(
         let paint_jobs = egui_w.platform.context().tessellate(paint_commands);
 
         if let Some(output) = &current_frame_r.0 {
-            let mut encoder = gpu_w.device.create_command_encoder(
+            let mut encoder = gpu_r.device.create_command_encoder(
                 &CommandEncoderDescriptor {
                     label: Some("encoder"),
                 }
@@ -74,17 +74,17 @@ pub fn egui_renderer_system(
 
             // Upload all resources for the GPU.
             let screen_descriptor = ScreenDescriptor {
-                physical_width: gpu_w.swap_chain_descriptor.width,
-                physical_height: gpu_w.swap_chain_descriptor.height,
+                physical_width: gpu_r.swap_chain_descriptor.width,
+                physical_height: gpu_r.swap_chain_descriptor.height,
                 scale_factor: window_r.native_window.scale_factor() as f32,
             };
         
             let tex = context.texture();
-            egui_w.render_pass.update_texture(&gpu_w.device, &gpu_w.queue, &tex);
-            egui_w.render_pass.update_user_textures(&gpu_w.device, &gpu_w.queue);
+            egui_w.render_pass.update_texture(&gpu_r.device, &gpu_r.queue, &tex);
+            egui_w.render_pass.update_user_textures(&gpu_r.device, &gpu_r.queue);
             egui_w.render_pass.update_buffers(
-                &gpu_w.device,
-                &gpu_w.queue,
+                &gpu_r.device,
+                &gpu_r.queue,
                 &paint_jobs,
                 &screen_descriptor
             );

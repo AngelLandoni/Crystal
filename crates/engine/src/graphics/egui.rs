@@ -90,11 +90,14 @@ pub fn initialize_egui(
 }
 
 /// Propagate winit events to egui.
-pub fn mantain_egui_events_system(
-    event: &Event<CustomEvent>,
-    egui: UniqueWrite<EGui>) {
+// UniqueWrite<EGui>
+pub fn mantain_egui_events(event: &Event<CustomEvent>, world: &DefaultWorld) {
+    // Get the egui unique component.
+    let egui = world.get::<UniqueWrite<EGui>>();
+    // Get a write access over it.
+    let mut egui_w = egui.write();
     // Send the event to egui.
-    egui.write().platform.handle_event(event);
+    egui_w.platform.handle_event(event);
 }
 
 /// Generates the EGui context and inserts that into the world.

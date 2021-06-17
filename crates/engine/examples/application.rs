@@ -74,7 +74,6 @@ pub fn top_bar_renderer_system(dev_gui: UniqueRead<DevGui>) {
     }
 }
 
-
 const MOVEMENT_SPEED: f32 = 0.1;
 const MOUSE_SENSIBILITY: f64 = 0.01;
 
