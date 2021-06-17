@@ -1,4 +1,5 @@
 pub mod buffer;
+pub mod egui;
 pub mod gpu;
 pub mod pipelines;
 pub mod renderers;

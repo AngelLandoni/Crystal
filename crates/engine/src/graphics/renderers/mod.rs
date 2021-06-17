@@ -1,4 +1,5 @@
 pub mod voxel_renderer;
+pub mod egui_renderer;
 
 use wgpu::{CommandBuffer, SwapChainTexture};
 
@@ -67,7 +68,7 @@ pub fn clean_and_drop_system(
 
 /// Submits all the commands to the GPU.
 /// TODO: Make it better, it is copying all over the place to order.
-pub fn submit_commnads_system(
+pub fn submit_commands_system(
     gpu: UniqueRead<Gpu>,
     commnad_buffer_queue: UniqueRead<CommandBufferQueue>) {
     let commmand_buffer_queue_read = commnad_buffer_queue.read();

@@ -306,6 +306,35 @@ impl<
 
         task_sync
     }
+
+    /// Runs a system providing it with data in the same thread where
+    /// it is called.
+    ///
+    /// Take in consideration that data will be moved.
+    ///
+    /// # Arguments
+    ///
+    /// `system` - The system to be executed.
+    /// `data` - The data that will be send to the system.
+    fn run_sync_with_data<
+        'a,
+        B: ComponentBundler,
+        S: DataSystem<B, D> + 'static + Send + Sync,
+        D: 'a + Send
+    >(&self, system: S, data: D)
+    {
+        // Get a clone of the storages in order to send them to the
+        // queue.
+        let c_s_copy = self.components_storage.clone();
+        let e_s_copy = self.entities_storage.clone();
+
+        // Generate a signal in order to know when the task finish.
+        let task_sync = Arc::new(TaskSync::default());
+        let task_sync_copy = task_sync.clone();
+
+        system.run_with_data(c_s_copy, e_s_copy, data);
+        task_sync_copy.mark_as_finish();
+    }
 }
 
 impl<

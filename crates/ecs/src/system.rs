@@ -27,6 +27,15 @@ pub trait SystemHandler {
         S: DataSystem<B, D> + 'static + Send + Sync,
         D: 'static + Send
     >(&self, system: S, data: D) -> Arc<TaskSync>;
+
+    /// Provides an aftraction used to run a system sending a data 
+    /// parameter that should be exectued in the same thread.
+    fn run_sync_with_data<
+        'a,
+        B: ComponentBundler,
+        S: DataSystem<B, D> + 'static + Send + Sync,
+        D: 'a + Send
+    >(&self, system: S, data: D);
 }
 
 pub trait System<B: ComponentBundler> {

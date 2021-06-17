@@ -1,9 +1,10 @@
 mod basics;
 mod helpers;
-mod graphics;
 mod workloads;
-
 mod init;
+
+mod graphics;
+pub use graphics::egui::DevGui;
 
 pub mod scene;
 pub use scene::{
@@ -11,6 +12,7 @@ pub use scene::{
     input::{Input, Direction, KeyCode, InputEvent}
 };
 
+pub use egui;
 pub use cgmath;
 
 use futures::executor::block_on;
@@ -32,7 +34,10 @@ use log::{Log, Console, info};
 
 use crate::{
     basics::window::{Window, update_window_with_new_size_system},
-    graphics::gpu::{Gpu, update_gpu_with_new_size_system},
+    graphics::{
+        gpu::{Gpu, update_gpu_with_new_size_system},
+        egui::mantain_egui_events_system
+    },
     init::{initialize_window, initialize_world},
     workloads::{Workloads, run_workload},
     scene::{
@@ -62,7 +67,7 @@ pub struct InitialConfig {
 
 /// Defines the constants values for the window.
 const DEFAULT_WIDTH_SIZE: u32 = 2024;
-const DEFAULT_HEIGHT_SIZE: u32 = 1724;
+const DEFAULT_HEIGHT_SIZE: u32 = 1400;
 
 /// Defines the default constructor for `InitialConfig`.
 impl Default for InitialConfig {
@@ -126,6 +131,8 @@ async fn run(config: ConfigFn,
     // Trigger the main run loop.
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
+
+        //world.run_sync_with_data(mantain_egui_events_system, &event);
 
         match event {
 

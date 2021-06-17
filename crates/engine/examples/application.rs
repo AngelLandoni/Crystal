@@ -9,7 +9,9 @@ use engine::{
     Input,
     InputEvent,
     Camera,
-    cgmath::{Vector3, Point3, Rad, Angle, Quaternion}
+    DevGui,
+    cgmath::{Vector3, Point3, Rad, Angle, Quaternion},
+    egui::{menu, Button, Color32, Label, TextStyle, TopPanel}
 };
 
 use ecs::{
@@ -40,6 +42,38 @@ impl Default for FlyCamera {
         }
     }
 }
+
+pub fn top_bar_renderer_system(dev_gui: UniqueRead<DevGui>) {
+    let dev_gui_r = dev_gui.read();
+    if let Some(ctx) = &dev_gui_r.0 {
+        // Add a menu bar at the top.
+        TopPanel::top("wrap_app_top_bar").show(ctx, |ui| {
+            menu::bar(ui, |ui| {
+                // Add the logo in the top left corner.
+                ui.add(
+                    Label::new("[Crystal]")
+                        .text_color(Color32::from_rgb(255, 102, 0))
+                        .text_style(TextStyle::Heading)
+                );
+
+                // Create 'File' menu.
+                menu::menu(ui, "File", |ui| {
+                    
+                    ui.separator();
+
+                    // Add the `Exit button`.
+                    if ui.add(
+                        Button::new("❌ Exit")
+                            .text_color(Color32::RED)
+                    ).clicked {
+                        println!("Exit clicked");
+                    }
+                });
+            });
+        });
+    }
+}
+
 
 const MOVEMENT_SPEED: f32 = 0.1;
 const MOUSE_SENSIBILITY: f64 = 0.01;
@@ -202,6 +236,7 @@ fn input(event: &InputEvent, world: &DefaultWorld) {
 /// `world` - The world used to store and handle data.
 fn tick(world: &DefaultWorld) {
     world.run(input_camera_system);
+    world.run(top_bar_renderer_system);
 }
 
 /// Application entry point.

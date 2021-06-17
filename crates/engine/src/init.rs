@@ -13,6 +13,7 @@ use crate::{
     scene::components::{Voxel, Transform},
     graphics::{
         gpu::Gpu,
+        egui::initialize_egui,
         texture::{Texture, DepthTexture, TextureGenerator},
         pipelines::{
             initialize_pipelines,
@@ -73,7 +74,7 @@ pub fn initialize_world(
     initialize_pipelines(&gpu, &world);
 
     // Initialize egui.
-    //initialize_egui(&gpu, &window, &world, e_loop_proxy);
+    initialize_egui(&gpu, &window, &world, e_loop_proxy);
 
     // Create and set the depth texture.
     let depth_texture: Texture = gpu.create_depth_texture();

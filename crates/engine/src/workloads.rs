@@ -4,10 +4,12 @@ use crate::{
     graphics::{
         renderers::{
             voxel_renderer::voxel_renderer_system,
+            egui_renderer::egui_renderer_system,
             maintain_swap_chain_output_system,
-            submit_commnads_system,
+            submit_commands_system,
             clean_and_drop_system
-        }
+        },
+        egui::mantain_egui_context_system
     },
     scene::camera::mantain_camera_buffer_system
 };
@@ -50,6 +52,7 @@ pub fn run_workload(workload: Workloads, world: &DefaultWorld) {
 fn run_start_workload(world: &DefaultWorld) {
     (
         world.run(maintain_swap_chain_output_system),
+        world.run(mantain_egui_context_system)
     ).wait();
 }
 
@@ -78,6 +81,7 @@ fn run_synchronize_workload(world: &DefaultWorld) {
 fn run_render_workload(world: &DefaultWorld) {
     (
         world.run(voxel_renderer_system),
+        world.run(egui_renderer_system)
     ).wait();
 }
 
@@ -91,7 +95,7 @@ fn run_render_workload(world: &DefaultWorld) {
 /// `world` - The world which contains all the resources.
 fn run_commit_workload(world: &DefaultWorld) {
     (
-        world.run(submit_commnads_system),
+        world.run(submit_commands_system),
     ).wait();
 }
 
