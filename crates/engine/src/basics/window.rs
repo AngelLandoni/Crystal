@@ -1,7 +1,8 @@
 
 use winit::{
     event_loop::{EventLoop},
-    window::WindowBuilder
+    window::WindowBuilder,
+    dpi::LogicalSize
 };
 
 use ecs::UniqueWrite;
@@ -40,6 +41,7 @@ impl Window {
         // Create the new window.
         let native_window = match WindowBuilder::new()
             .with_title(title)
+            .with_inner_size(LogicalSize::new(size.width, size.height))
             .build(&event_loop) {
             Ok(w) => w,
             Err(_) => return Err(InitError::Window)

@@ -76,8 +76,6 @@ pub fn input_camera_system(input: UniqueRead<Input>,
         camera_w.eye -= movement;
         camera_w.target -= movement; 
     }
-
-    println!("DDDD {:?}", camera_w.view_projection());
 }
 
 pub fn calculate_input_fly_camera(data: (Direction, f64),

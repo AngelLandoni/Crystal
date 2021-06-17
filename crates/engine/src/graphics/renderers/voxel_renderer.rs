@@ -165,7 +165,7 @@ pub fn voxel_renderer_system(
         }   
     ) {
         Ok(_) => {
-            info("{VoxelRenderer} Render pass finished correclty");
+            //info("{VoxelRenderer} Render pass finished correclty");
         },
         Err(_) => {
             warning("{VoxelRenderer} Render pass error");

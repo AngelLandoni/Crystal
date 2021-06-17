@@ -61,8 +61,8 @@ pub struct InitialConfig {
 }
 
 /// Defines the constants values for the window.
-const DEFAULT_WIDTH_SIZE: u32 = 1024;
-const DEFAULT_HEIGHT_SIZE: u32 = 768;
+const DEFAULT_WIDTH_SIZE: u32 = 2024;
+const DEFAULT_HEIGHT_SIZE: u32 = 1724;
 
 /// Defines the default constructor for `InitialConfig`.
 impl Default for InitialConfig {
