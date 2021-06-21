@@ -4,6 +4,7 @@ use crate::{
     graphics::{
         renderers::{
             voxel_renderer::voxel_renderer_system,
+            wireframe_voxel_renderer::wireframe_voxel_renderer_system,
             egui_renderer::egui_renderer_system,
             maintain_swap_chain_output_system,
             submit_commands_system,
@@ -81,6 +82,7 @@ fn run_synchronize_workload(world: &DefaultWorld) {
 fn run_render_workload(world: &DefaultWorld) {
     (
         world.run(voxel_renderer_system),
+        world.run(wireframe_voxel_renderer_system),
         world.run(egui_renderer_system)
     ).wait();
 }

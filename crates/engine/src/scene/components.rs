@@ -64,6 +64,32 @@ impl Voxel {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct WireframeVoxel {
+    pub color: Vector3<f32>
+}
+
+impl Default for WireframeVoxel {
+    fn default() -> Self {
+        Self {
+            color: Vector3 { x: 1.0, y: 1.0, z: 1.0 }
+        }
+    }
+}
+
+impl WireframeVoxel {
+    /// Returns the size of `Voxel` in number of bytes.
+    pub fn size() -> u32 {
+        std::mem::size_of::<Self>() as u32
+    }
+}
+
+impl WireframeVoxel {
+    /// Creates and returns the a new 3 elements array which contains the color.
+    pub fn color_as_array(&self) -> [f32; 3] {
+       array3(self.color)
+    }
+}
 
 /// Represents a trasnformation component.
 ///

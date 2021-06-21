@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
 
 use engine::{
-    scene::components::{Voxel, Transform},
+    scene::components::{Voxel, WireframeVoxel, Transform},
     run_program,
     InitialConfig,
     KeyCode,
@@ -10,8 +10,17 @@ use engine::{
     InputEvent,
     Camera,
     DevGui,
+    Window,
     cgmath::{Vector3, Point3, Rad, Angle, Quaternion},
-    egui::{menu, Button, Color32, Label, TextStyle, TopPanel}
+    egui::{
+        menu,
+        Button,
+        Color32,
+        Label,
+        TextStyle,
+        TopPanel,
+        Window as EWindow
+    }
 };
 
 use ecs::{
@@ -43,18 +52,43 @@ impl Default for FlyCamera {
     }
 }
 
-pub fn top_bar_renderer_system(dev_gui: UniqueRead<DevGui>) {
-    let dev_gui_r = dev_gui.read();
-    if let Some(ctx) = &dev_gui_r.0 {
+pub fn top_bar_renderer_system(dev_gui: UniqueWrite<DevGui>) {
+    let dev_gui_w = dev_gui.write();
+    if let Some(ctx) = &dev_gui_w.0 {
+
+        EWindow::new("")
+            .id(egui::Id::new("tool_window"))
+            .resizable(false)
+            .collapsible(false)
+            .title_bar(false)
+            .scroll(false)
+            .current_pos(egui::pos2(10.0, 50.0))
+            .show(ctx, |ui| {
+
+                if ui.add(Button::new("🚀")
+                    .text_style(TextStyle::Heading)
+                ).clicked {
+                    println!("Tool 1");
+                }
+
+                if ui.button("🌵").clicked {
+                    println!("Tool 2");
+                }
+                if ui.button("🏞").clicked {
+                    println!("Tool 3");
+                }
+                if ui.button("🍏").clicked {
+                    println!("Tool 4");
+                }
+                if ui.button("☢").clicked {
+                    println!("Tool 5");
+                }
+            }
+        );
+
         // Add a menu bar at the top.
         TopPanel::top("wrap_app_top_bar").show(ctx, |ui| {
             menu::bar(ui, |ui| {
-                // Add the logo in the top left corner.
-                ui.add(
-                    Label::new("[Crystal]")
-                        .text_color(Color32::from_rgb(255, 102, 0))
-                        .text_style(TextStyle::Heading)
-                );
 
                 // Create 'File' menu.
                 menu::menu(ui, "File", |ui| {
@@ -66,11 +100,14 @@ pub fn top_bar_renderer_system(dev_gui: UniqueRead<DevGui>) {
                         Button::new("❌ Exit")
                             .text_color(Color32::RED)
                     ).clicked {
-                        println!("Exit clicked");
+                        std::process::exit(0);
                     }
                 });
+
             });
         });
+
+        
     }
 }
 
@@ -189,8 +226,24 @@ fn configure_application(world: &DefaultWorld) {
     // Adds the fly camera information.
     world.register_unique(FlyCamera::default());
 
-    for i in 1..10 {
-        for j in 1..10 {
+    world.add_entity((
+        WireframeVoxel::default(),
+        Transform {
+            position: Vector3 {
+                x: 2.0,
+                y: 0.0,
+                z: 2.0
+            },
+            scale: Vector3 { x: 1.0, y: 1.0, z: 1.0 },
+            rotation: Quaternion { 
+                v: Vector3 { x: 0.0, y: 0.0, z: 0.0 },
+                s: 0.0
+            }
+        }
+    ));
+
+    for i in 1..30 {
+        for j in 1..30 {
             let transform = Transform {
                 position: Vector3 {
                     x: 2.0 * (i as f32),

@@ -1,12 +1,16 @@
 pub mod bind_groups;
 pub mod voxel_render_pipeline;
+pub mod wireframe_voxel_render_pipeline;
 
 use ecs::{DefaultWorld, ComponentHandler};
 
 use crate::{
 	graphics::{
 		gpu::Gpu,
-		pipelines::voxel_render_pipeline::VoxelRenderPipeline
+		pipelines::{
+			voxel_render_pipeline::VoxelRenderPipeline,
+			wireframe_voxel_render_pipeline::WireframeVoxelRenderPipeline
+		}
 	}
 };
 
@@ -18,4 +22,5 @@ use crate::{
 pub fn initialize_pipelines(gpu: &Gpu, world: &DefaultWorld) {
 	// Create and set the voxel pipeline.
 	world.register_unique(VoxelRenderPipeline::new(gpu, world));
+	world.register_unique(WireframeVoxelRenderPipeline::new(gpu, world));
 }

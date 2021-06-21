@@ -1,4 +1,5 @@
 pub mod voxel_renderer;
+pub mod wireframe_voxel_renderer;
 pub mod egui_renderer;
 
 use wgpu::{CommandBuffer, SwapChainTexture};
@@ -30,6 +31,8 @@ pub type CurrentSwapChainOutput = (Option<SwapChainTexture>, );
 pub enum RenderOrder {
     /// Render EGui.
     DebugGui,
+    /// Wireframe voxel rendering.
+    WireframeVoxel,
     /// Voxel rendering order.
     Voxel
 }

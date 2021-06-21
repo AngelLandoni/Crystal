@@ -29,18 +29,22 @@ use crate::{
         vertex::Vertex,
         buffer::BufferCreator,
         shaders::{ShaderProvider, ShaderGenerator},
-        pipelines::bind_groups::locals_bind_group::LocalsLayout,
+        pipelines::{
+            bind_groups::locals_bind_group::LocalsLayout,
+            voxel_render_pipeline::{
+                create_voxel_vertices,
+                create_voxel_indices,
+                allocate_gpu_buffers
+            }
+        },
         texture::DEPTH_FORMAT
     },
-    scene::components::{Voxel, Transform},
+    scene::components::{WireframeVoxel, Transform},
 };
-
-/// The limit of instances that could be rendererd at the same time.
-const MAX_NUMBER_OF_INSTANCES: u32 = 200000;
 
 /// TODO: Rename this to pipeline the module already defines context and Rust is
 /// super nice and we can use them as namespaces.
-pub struct VoxelRenderPipeline {
+pub struct WireframeVoxelRenderPipeline {
     /// Contains the Wgpu pipeline.
     pub pipeline: RenderPipeline,
 
@@ -60,7 +64,7 @@ pub struct VoxelRenderPipeline {
     pub voxels_buffer: Buffer
 }
 
-impl VoxelRenderPipeline {
+impl WireframeVoxelRenderPipeline {
     /// Creates and returns a new voxel renderder pipeline.
     ///
     /// # Arguments
@@ -97,12 +101,12 @@ impl VoxelRenderPipeline {
             }
         );
 
-        info("{VoxelRenderPipeline} Finish creating pipeline layout");
+        info("{WireframeVoxelRenderPipeline} Finish creating pipeline layout");
 
         // Get the swap chain format.
         let swapchain_format = gpu.swap_chain_format();
 
-        info("{VoxelRenderPipeline} Crearing render pipeline");
+        info("{WireframeVoxelRenderPipeline} Crearing render pipeline");
 
         let render_pipeline: RenderPipeline = gpu.create_render_pipeline(
             &RenderPipelineDescriptor {
@@ -123,6 +127,7 @@ impl VoxelRenderPipeline {
                     targets: &[swapchain_format.into()],
                 }),
                 primitive: PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::LineStrip,
                     cull_mode: wgpu::CullMode::Back,
                     ..Default::default()
                 },
@@ -208,7 +213,7 @@ fn create_vertex_layout<'a>() -> VertexBufferLayout<'a> {
 fn create_style_layout<'a>() -> VertexBufferLayout<'a> {
     VertexBufferLayout {
         // The size of the Voxel content.
-        array_stride: std::mem::size_of::<Voxel>() as BufferAddress,
+        array_stride: std::mem::size_of::<WireframeVoxel>() as BufferAddress,
         // We want data per instance.
         step_mode: InputStepMode::Instance,
         // Defines the specific layout for each style instance.
@@ -273,73 +278,4 @@ fn create_transformation_layout<'a>() -> VertexBufferLayout<'a> {
             }
         ]
     }
-}
-
-/// Creates and returns the needed vertices.
-pub(crate) fn create_voxel_vertices() -> Vec<Vertex> {
-    [
-        // Top face.
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: 1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: 1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: 1.0 }, [1.0, 1.0]),
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: 1.0 }, [0.0, 1.0]),
-        // Bottom face.
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: -1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: -1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: -1.0 }, [0.0, 1.0]),
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: -1.0 }, [1.0, 1.0]),
-        // Right face.
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: -1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: -1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: 1.0 }, [1.0, 1.0]),
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: 1.0 }, [0.0, 1.0]),
-        // Left face.
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: 1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: 1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: -1.0 }, [0.0, 1.0]),
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: -1.0 }, [1.0, 1.0]),
-        // Front face.
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: -1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: -1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: 1.0 }, [0.0, 1.0]),
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: 1.0 }, [1.0, 1.0]),
-        // Back face.
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: 1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: 1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: -1.0 }, [1.0, 1.0]),
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: -1.0 }, [0.0, 1.0])
-    ].to_vec()
-}
-
-/// Creates and returns the needed indices.
-pub(crate) fn create_voxel_indices() -> Vec<u16> {
-    let index_data: &[u16] = &[
-        0, 1, 2, 2, 3, 0, // top
-        4, 5, 6, 6, 7, 4, // bottom
-        8, 9, 10, 10, 11, 8, // right
-        12, 13, 14, 14, 15, 12, // left
-        16, 17, 18, 18, 19, 16, // front
-        20, 21, 22, 22, 23, 20, // back
-    ];
-
-    index_data.to_vec()
-}
-
-/// Creates and returns all the needed buffers.
-///
-/// # Arguments
-///
-/// `gpu` - The gpu used to allocate the buffers.
-pub(crate) fn allocate_gpu_buffers(gpu: &Gpu) -> (Buffer, Buffer) {
-    // Calculate the max size needed to host the max number of 
-    // voxel transformations.
-    let trs_size = (MAX_NUMBER_OF_INSTANCES * Transform::size()) as u64; 
-    let transformations_buffer = gpu.create_vertex_with_size(trs_size); 
-
-    // Caluclate the max size needed to host the max number of
-    // voxel properties.
-    let voxel_size = (MAX_NUMBER_OF_INSTANCES * Voxel::size()) as u64;
-    let voxels_buffer = gpu.create_vertex_with_size(voxel_size);
-
-    (transformations_buffer, voxels_buffer)
 }

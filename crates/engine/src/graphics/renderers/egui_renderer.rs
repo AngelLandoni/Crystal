@@ -107,7 +107,7 @@ pub fn egui_renderer_system(
                 }   
             ) {
                 Ok(_) => {
-                    info("[EGui] Render pass finished correclty");
+                    //info("[EGui] Render pass finished correclty");
                 },
                 Err(_) => {
                     warning("[EGui] Render pass error");

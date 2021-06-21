@@ -20,7 +20,7 @@ use crate::{
         OrderedCommandBuffer,
         gpu::Gpu,
         pipelines::{ 
-            voxel_render_pipeline::VoxelRenderPipeline,
+            wireframe_voxel_render_pipeline::WireframeVoxelRenderPipeline,
             bind_groups::locals_bind_group::LocalsLayout
         },
         renderers::{RenderOrder, CurrentSwapChainOutput},
@@ -28,7 +28,7 @@ use crate::{
         texture::DepthTexture
     },
     scene::{ 
-        components::{Voxel, Transform}
+        components::{WireframeVoxel, Transform}
     }
 };
 
@@ -36,15 +36,15 @@ use crate::{
 
 
 /// Runs the system, executed by the world.
-pub fn voxel_renderer_system(
+pub fn wireframe_voxel_renderer_system(
     gpu: UniqueRead<Gpu>,
-    voxel_pipeline: UniqueRead<VoxelRenderPipeline>,
+    voxel_pipeline: UniqueRead<WireframeVoxelRenderPipeline>,
     command_buffer: UniqueRead<CommandBufferQueue>,
     current_frame: UniqueRead<CurrentSwapChainOutput>,
     locals_layout: UniqueRead<LocalsLayout>,
     depth_texture: UniqueRead<DepthTexture>,
     // Components
-    voxels: Read<Voxel>,
+    voxels: Read<WireframeVoxel>,
     transformations: Read<Transform>) {
 
     // Create the command enconder descriptor.
@@ -93,12 +93,12 @@ pub fn voxel_renderer_system(
         let depth_texture_attachment = &depth_texture_read.0.view;
 
         let rp_descriptor = RenderPassDescriptor {
-            label: Some("Voxel render pass"),
+            label: Some("WireframeVoxel render pass"),
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                 attachment: &output.view,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    load: wgpu::LoadOp::Load,
                     store: true,
                 },
             }],
@@ -158,8 +158,8 @@ pub fn voxel_renderer_system(
     // Send the commander buffer
     match command_buffer.read().push(
         OrderedCommandBuffer {
-            label: Some("Voxel_Render_System".to_string()),
-            order: RenderOrder::Voxel.as_index(),
+            label: Some("WireframeVoxel_Render_System".to_string()),
+            order: RenderOrder::WireframeVoxel.as_index(),
             command: encoder.finish()
         }   
     ) {
@@ -167,7 +167,7 @@ pub fn voxel_renderer_system(
             //info("{VoxelRenderer} Render pass finished correclty");
         },
         Err(_) => {
-            warning("{VoxelRenderer} Render pass error");
+            warning("{WireframeVoxelRenderer} Render pass error");
         }
     }
 }

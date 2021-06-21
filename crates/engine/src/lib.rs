@@ -1,8 +1,9 @@
-mod basics;
 mod helpers;
 mod workloads;
 mod init;
 
+mod basics;
+pub use basics::window::Window;
 mod graphics;
 pub use graphics::egui::DevGui;
 
@@ -33,7 +34,7 @@ use types::Size;
 use log::{Log, Console, info};
 
 use crate::{
-    basics::window::{Window, update_window_with_new_size_system},
+    basics::window::update_window_with_new_size_system,
     graphics::{
         gpu::{Gpu, update_gpu_with_new_size_system},
         egui::mantain_egui_events
