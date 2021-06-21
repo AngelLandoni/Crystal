@@ -56,35 +56,36 @@ pub fn top_bar_renderer_system(dev_gui: UniqueWrite<DevGui>) {
     let dev_gui_w = dev_gui.write();
     if let Some(ctx) = &dev_gui_w.0 {
 
-        EWindow::new("")
-            .id(egui::Id::new("tool_window"))
-            .resizable(false)
-            .collapsible(false)
-            .title_bar(false)
-            .scroll(false)
-            .current_pos(egui::pos2(10.0, 50.0))
-            .show(ctx, |ui| {
+        egui::SidePanel::left("Tools_panel", 200.0)
+        .show(ctx, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.heading("✒ egui demos");
+            });
 
-                if ui.add(Button::new("🚀")
-                    .text_style(TextStyle::Heading)
-                ).clicked {
-                    println!("Tool 1");
-                }
+            ui.separator();
 
-                if ui.button("🌵").clicked {
-                    println!("Tool 2");
-                }
-                if ui.button("🏞").clicked {
-                    println!("Tool 3");
-                }
-                if ui.button("🍏").clicked {
-                    println!("Tool 4");
-                }
-                if ui.button("☢").clicked {
-                    println!("Tool 5");
-                }
-            }
-        );
+            egui::ScrollArea::auto_sized().show(ui, |ui| {
+                
+                ui.label("egui is an immediate mode GUI library written in Rust.");
+
+                ui.label(format!(
+                    "egui runs on the web, or natively on Apple",
+                ));
+
+                ui.vertical_centered(|ui| {
+                });
+
+                ui.separator();
+                ui.separator();
+                ui.separator();
+
+                ui.vertical_centered(|ui| {
+                    if ui.button("Organize windows").clicked {
+                        ui.ctx().memory().reset_areas();
+                    }
+                });
+            });
+        });
 
         // Add a menu bar at the top.
         TopPanel::top("wrap_app_top_bar").show(ctx, |ui| {
