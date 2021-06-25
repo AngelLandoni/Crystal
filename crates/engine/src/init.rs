@@ -17,7 +17,10 @@ use crate::{
         texture::{Texture, DepthTexture, TextureGenerator},
         pipelines::{
             initialize_pipelines,
-            bind_groups::locals_bind_group::initialize_locals
+            bind_groups::{
+                locals_bind_group::initialize_locals,
+                sky_bind_group::initialize_sky
+            }
         },
         CommandBufferQueue,
         MAX_NUMBER_OF_COMMANDS_PER_CALL
@@ -67,9 +70,13 @@ pub fn initialize_world(
     world.register::<WireframeVoxel>();
     world.register::<Transform>();
 
-    // initialize all the locals, this should be performed before the pipelines
+    // Initialize all the locals, this should be performed before the pipelines
     // due the pipelines will need the locals buffer.
     initialize_locals(&gpu, &world);
+
+    // Initialize the sky, this should be performed before the pipelines 
+    // due they will need the uniforms already created.
+    initialize_sky(&gpu, &world);
 
     // Initialize basic pipelines.
     initialize_pipelines(&gpu, &world);

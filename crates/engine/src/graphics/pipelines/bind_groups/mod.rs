@@ -1,4 +1,5 @@
 pub mod locals_bind_group;
+pub mod sky_bind_group;
 
 use wgpu::{
     BindGroup,

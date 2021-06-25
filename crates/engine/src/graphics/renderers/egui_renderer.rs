@@ -74,8 +74,8 @@ pub fn egui_renderer_system(
 
             // Upload all resources for the GPU.
             let screen_descriptor = ScreenDescriptor {
-                physical_width: gpu_r.swap_chain_descriptor.width,
-                physical_height: gpu_r.swap_chain_descriptor.height,
+                physical_width: window_r.size.width,//gpu_r.swap_chain_descriptor.width,
+                physical_height: window_r.size.height,//gpu_r.swap_chain_descriptor.height,
                 scale_factor: window_r.native_window.scale_factor() as f32,
             };
         

@@ -263,6 +263,8 @@ fn configure_application(world: &DefaultWorld) {
             ));
         }
     }
+
+    
 }
 
 /// Handles all the input events.
