@@ -248,7 +248,7 @@ fn configure_application(world: &DefaultWorld) {
             let transform = Transform {
                 position: Vector3 {
                     x: 2.0 * (i as f32),
-                    y: 0.0,
+                    y: (i as f32).sin() * (j as f32).cos(),
                     z: 2.0 * (j as f32)
                 },
                 scale: Vector3 { x: 1.0, y: 1.0, z: 1.0 },
@@ -264,7 +264,7 @@ fn configure_application(world: &DefaultWorld) {
         }
     }
 
-    
+
 }
 
 /// Handles all the input events.
