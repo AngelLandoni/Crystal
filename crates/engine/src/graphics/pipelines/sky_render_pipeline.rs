@@ -78,13 +78,16 @@ impl SkyRenderPipeline {
         info("{VoxelRenderPipeline} Crearing pipeline layout");
 
         let sky_layout = world.get::<UniqueRead<SkyUniformLayout>>();
+        let locals_layout = world.get::<UniqueRead<LocalsLayout>>();
 
         // Creates the pipeline layout.
         let pipeline_layout = gpu.device.create_pipeline_layout(
             &PipelineLayoutDescriptor {
                 label: None,
                 bind_group_layouts: &[
-                    // Creates the layout for the locals.
+                    // Creates the layout for the sky.
+                    &locals_layout.read().layout,
+                    // Creates the layout for the sky.
                     &sky_layout.read().layout
                 ],
                 push_constant_ranges: &[]

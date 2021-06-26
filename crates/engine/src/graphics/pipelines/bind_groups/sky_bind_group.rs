@@ -27,7 +27,7 @@ use crate::{
 };
 
 /// Define where the sky with be placed in the shader.
-const SKY_BINDING_POSITION: u32 = 1;
+const SKY_BINDING_POSITION: u32 = 0;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]

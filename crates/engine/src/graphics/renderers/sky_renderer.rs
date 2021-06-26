@@ -21,7 +21,10 @@ use crate::{
         gpu::Gpu,
         pipelines::{ 
             sky_render_pipeline::SkyRenderPipeline,
-            bind_groups::sky_bind_group::SkyUniformLayout
+            bind_groups::{
+                sky_bind_group::SkyUniformLayout,
+                locals_bind_group::LocalsLayout
+            }
         },
         renderers::{RenderOrder, CurrentSwapChainOutput},
         buffer::{BufferManipulator},
@@ -42,6 +45,7 @@ pub fn sky_renderer_system(
     command_buffer: UniqueRead<CommandBufferQueue>,
     current_frame: UniqueRead<CurrentSwapChainOutput>,
     sky_layout: UniqueRead<SkyUniformLayout>,
+    locals_layout: UniqueRead<LocalsLayout>,
     depth_texture: UniqueRead<DepthTexture>) {
 
     // Create the command enconder descriptor.
@@ -54,8 +58,11 @@ pub fn sky_renderer_system(
 
     let frame = current_frame.read();
     if let Some(output) = &frame.0 {
+        let layout_read = locals_layout.read();
+        let local_group = &layout_read.group;
+
         let sky_read = sky_layout.read();
-        let group = &sky_read.group;
+        let sky_group = &sky_read.group;
 
         let depth_texture_read = depth_texture.read();
         let depth_texture_attachment = &depth_texture_read.0.view;
@@ -90,7 +97,8 @@ pub fn sky_renderer_system(
         let mut rpass = encoder.begin_render_pass(&rp_descriptor);
         rpass.set_pipeline(&sky_pipeline_read.pipeline);
         // Bind the locals bind group to the group 0. 
-        rpass.set_bind_group(0, group, &[]);
+        rpass.set_bind_group(0, local_group, &[]);
+        rpass.set_bind_group(1, sky_group, &[]);
         // Set the vertex buffer.
         rpass.set_index_buffer(
             sky_pipeline_read.index_buffer.slice(..),
