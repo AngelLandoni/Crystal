@@ -107,7 +107,7 @@ impl SkyRenderPipeline {
                     entry_point: "vs_main",
                     buffers: &[
                         // This thing is used not for the uniforms but the vertex thing
-                        //create_style_layout()
+                        create_vertex_layout()
                     ]
                 },
                 fragment: Some(FragmentState {
@@ -160,37 +160,32 @@ fn create_shader(gpu: &Gpu) -> ShaderModule {
     gpu.create_shader(&provider)
 }
 
-/// Creates and returns the style layout, this is used to know the how the 
+/// Creates and returns the vertex layout, this is used to know how the
 /// GPU should align the memory sent by the CPU.
+/// 
+/// In the shader the structure for the vertex can be complex not just the +
+/// position of it but the color and usefull information, that is why 
+/// we need this layout.
 ///
-/// This is useful to send the per voxel style.
-fn create_style_layout<'a>() -> VertexBufferLayout<'a> {
+/// We can send the data to the GPU using the set_vertex_buffer function.
+fn create_vertex_layout<'a>() -> VertexBufferLayout<'a> {
     VertexBufferLayout {
-        // The size of the Voxel content.
-        array_stride: std::mem::size_of::<Sky>() as BufferAddress,
-        // We want data per instance.
-        step_mode: InputStepMode::Instance,
-        // Defines the specific layout for each style instance.
+        // How long is the data that we want to send.
+        array_stride: std::mem::size_of::<Vertex>() as BufferAddress,
+        // We want the data for each vertex.
+        step_mode: InputStepMode::Vertex,
+        // Defines the specific layout of `Vertex` (Each of the fields).
         attributes: &[
-            // Describes the position of the `color`.
+            // Describes the position of the `Vertex`.
             VertexAttribute {
-                // The size of the data, in this case we take care only 
-                // of RGB so we need 3 floats.
-                format: VertexFormat::Float3,
-                // Starting from the initial place.
+                // The size of the data in GPU.
+                format: VertexFormat::Float4, 
+                // Position on the memory sent by the CPU.
                 offset: 0,
-                // Set the shader location.
+                // Where it should map the data in the shader.
                 shader_location: 0
             },
-            VertexAttribute {
-                // The size of the data, in this case we take care only 
-                // of RGB so we need 3 floats.
-                format: VertexFormat::Float3,
-                // Starting from the initial place.
-                offset: 0,
-                // Set the shader location.
-                shader_location: 1
-            }
+            // TODO(Angel): Add the rest of the parameters like UV etc.
         ]
     }
 }

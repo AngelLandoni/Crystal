@@ -42,9 +42,7 @@ pub fn sky_renderer_system(
     command_buffer: UniqueRead<CommandBufferQueue>,
     current_frame: UniqueRead<CurrentSwapChainOutput>,
     sky_layout: UniqueRead<SkyUniformLayout>,
-    depth_texture: UniqueRead<DepthTexture>,
-    // Components
-    sky: Read<Sky>) {
+    depth_texture: UniqueRead<DepthTexture>) {
 
     // Create the command enconder descriptor.
     let e_descriptor = CommandEncoderDescriptor {
@@ -93,7 +91,14 @@ pub fn sky_renderer_system(
         rpass.set_pipeline(&sky_pipeline_read.pipeline);
         // Bind the locals bind group to the group 0. 
         rpass.set_bind_group(0, group, &[]);
-        rpass.draw(0..3, 0..1);
+        // Set the vertex buffer.
+        rpass.set_index_buffer(
+            sky_pipeline_read.index_buffer.slice(..),
+            wgpu::IndexFormat::Uint16
+        );
+        // Set the vertex buffer.
+        rpass.set_vertex_buffer(0, sky_pipeline_read.vertex_buffer.slice(..));
+        rpass.draw_indexed(0..sky_pipeline_read.index_len, 0, 0..1);
     }
 
     // Send the commander buffer
