@@ -59,7 +59,6 @@ pub fn sky_renderer_system(
         let sky_read = sky_layout.read();
         let group = &sky_read.group;
 
-
         let depth_texture_read = depth_texture.read();
         let depth_texture_attachment = &depth_texture_read.0.view;
 
@@ -69,7 +68,7 @@ pub fn sky_renderer_system(
                 attachment: &output.view,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
+                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                     store: true,
                 },
             }],

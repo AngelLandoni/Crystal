@@ -98,7 +98,7 @@ pub fn voxel_renderer_system(
                 attachment: &output.view,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    load: wgpu::LoadOp::Load,
                     store: true,
                 },
             }],
