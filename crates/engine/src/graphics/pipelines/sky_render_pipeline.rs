@@ -59,11 +59,16 @@ impl SkyRenderPipeline {
 
         info("{VoxelRenderPipeline} Crearing pipeline layout");
 
+        let sky_layout = world.get::<UniqueRead<SkyUniformLayout>>();
+
         // Creates the pipeline layout.
         let pipeline_layout = gpu.device.create_pipeline_layout(
             &PipelineLayoutDescriptor {
                 label: None,
-                bind_group_layouts: &[],
+                bind_group_layouts: &[
+                    // Creates the layout for the locals.
+                    &sky_layout.read().layout
+                ],
                 push_constant_ranges: &[]
             }
         );
@@ -82,7 +87,9 @@ impl SkyRenderPipeline {
                 vertex: VertexState {
                     module: &shader_module,
                     entry_point: "vs_main",
-                    buffers: &[]
+                    buffers: &[
+                        
+                    ]
                 },
                 fragment: Some(FragmentState {
                     module: &shader_module,

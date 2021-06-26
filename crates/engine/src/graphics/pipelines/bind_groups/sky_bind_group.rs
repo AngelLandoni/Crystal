@@ -88,7 +88,7 @@ fn create_sky_bind_group_layout_entry() -> BindGroupLayoutEntry {
         // Where the information is visible, in this case it is only visible
         // for the vertex stage, we do not need the camera transformation 
         // in the frag for now.
-        visibility: ShaderStage::FRAGMENT, 
+        visibility: ShaderStage::VERTEX, 
         // Defines the type of allocation that is needed, in this case is just
         // a camera so a normal buffer is ok, also we can send images if needed
         // if we need to do some specific task and extract information form a

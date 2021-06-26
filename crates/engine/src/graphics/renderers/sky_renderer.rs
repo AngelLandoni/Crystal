@@ -21,7 +21,7 @@ use crate::{
         gpu::Gpu,
         pipelines::{ 
             sky_render_pipeline::SkyRenderPipeline,
-            bind_groups::locals_bind_group::LocalsLayout
+            bind_groups::sky_bind_group::SkyUniformLayout
         },
         renderers::{RenderOrder, CurrentSwapChainOutput},
         buffer::{BufferManipulator},
@@ -41,7 +41,7 @@ pub fn sky_renderer_system(
     sky_pipeline: UniqueRead<SkyRenderPipeline>,
     command_buffer: UniqueRead<CommandBufferQueue>,
     current_frame: UniqueRead<CurrentSwapChainOutput>,
-    locals_layout: UniqueRead<LocalsLayout>,
+    sky_layout: UniqueRead<SkyUniformLayout>,
     depth_texture: UniqueRead<DepthTexture>,
     // Components
     sky: Read<Sky>) {
@@ -56,6 +56,10 @@ pub fn sky_renderer_system(
 
     let frame = current_frame.read();
     if let Some(output) = &frame.0 {
+        let sky_read = sky_layout.read();
+        let group = &sky_read.group;
+
+
         let depth_texture_read = depth_texture.read();
         let depth_texture_attachment = &depth_texture_read.0.view;
 
@@ -88,6 +92,8 @@ pub fn sky_renderer_system(
         // Create the render pass.
         let mut rpass = encoder.begin_render_pass(&rp_descriptor);
         rpass.set_pipeline(&sky_pipeline_read.pipeline);
+        // Bind the locals bind group to the group 0. 
+        rpass.set_bind_group(0, group, &[]);
         rpass.draw(0..3, 0..1);
     }
 
