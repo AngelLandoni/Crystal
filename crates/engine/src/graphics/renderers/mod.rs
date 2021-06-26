@@ -1,4 +1,5 @@
 pub mod voxel_renderer;
+pub mod sky_renderer;
 pub mod wireframe_voxel_renderer;
 pub mod egui_renderer;
 
@@ -29,6 +30,8 @@ pub type CurrentSwapChainOutput = (Option<SwapChainTexture>, );
 /// TODO(Angel): Now the render order is inverted fix that.
 #[derive(Copy, Clone)]
 pub enum RenderOrder {
+    /// Render the Sky
+    Sky,
     /// Render EGui.
     DebugGui,
     /// Wireframe voxel rendering.

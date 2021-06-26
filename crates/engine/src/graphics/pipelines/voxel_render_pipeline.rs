@@ -229,7 +229,7 @@ fn create_style_layout<'a>() -> VertexBufferLayout<'a> {
 
 /// Creates and returns the transformation layout, this is used to translate the
 /// vertex on the GPU side.
-fn create_transformation_layout<'a>() -> VertexBufferLayout<'a> {
+pub fn create_transformation_layout<'a>() -> VertexBufferLayout<'a> {
     // Take the size of the internal type.
     const UNIT_SIZE: usize = std::mem::size_of::<f32>();
     const ROW_SIZE: u64 = UNIT_SIZE as u64 * 4;

@@ -10,7 +10,7 @@ use log::info;
 use crate::{
     basics::window::{Window, CustomEvent},
     helpers::errors::InitError,
-    scene::components::{Voxel, WireframeVoxel, Transform},
+    scene::components::{Voxel, WireframeVoxel, Transform, Sky},
     graphics::{
         gpu::Gpu,
         egui::initialize_egui,
@@ -68,6 +68,7 @@ pub fn initialize_world(
     // Register default components.
     world.register::<Voxel>();
     world.register::<WireframeVoxel>();
+    world.register::<Sky>();
     world.register::<Transform>();
 
     // Initialize all the locals, this should be performed before the pipelines

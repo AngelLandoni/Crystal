@@ -10,6 +10,8 @@ use cgmath::{
     conv::array3
 };
 
+use types::Color;
+
 #[derive(Clone, Copy)]
 pub struct Voxel {
     pub color: Vector3<f32>
@@ -120,4 +122,10 @@ impl Transform {
     pub fn as_matrix_array(&self) -> [[f32; 4]; 4] {
         array4x4(self.as_matrix())
     }
+}
+
+#[derive(Clone, Copy)]
+pub struct Sky {
+    start_color: Color<f32>,
+    end_color: Color<f32>
 }
