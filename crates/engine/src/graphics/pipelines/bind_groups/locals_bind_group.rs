@@ -34,15 +34,21 @@ pub const LOCAL_BINDING_POSITION: u32 = 0;
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct Locals {
-    // The project of the camera.
-    view_proj: Matrix4<f32>
+    /// The point of view of the camera.
+    view: Matrix4<f32>,
+    
+    /// The projection of the camera.
+    projection: Matrix4<f32>
 }
 
 impl Locals {
     /// Creates and returns a new `Locals` using the default camera projection.
     pub fn new() -> Self {
+        let default_camera = Camera::default();
+
         Locals {
-            view_proj: Camera::default().view_projection()
+            view: default_camera.view(),
+            projection: default_camera.projection()
         }
     }
 }

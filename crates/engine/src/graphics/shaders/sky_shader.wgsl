@@ -12,7 +12,8 @@ var<out> out_color: vec3<f32>;
 
 [[block]]
 struct Locals {
-    transform: mat4x4<f32>;
+    view: mat4x4<f32>;
+    projection: mat4x4<f32>;
 };
 [[group(0), binding(0)]]
 var r_locals: Locals;
@@ -28,10 +29,14 @@ var r_sky: Sky;
 [[stage(vertex)]]
 fn vs_main() {
 	out_color = r_sky.start_color;
-	//out_pos = vec4<f32>(f32(1 - i32(in_vertex_index)) * 0.5, f32(i32(in_vertex_index & 1u) * 2 - 1) * 0.5, 0.0, 1.0);
+	
+    var no_translation_transform: mat4x4<f32> = r_locals.view;
+    no_translation_transform.w.x = 0.0;
+    no_translation_transform.w.y = 0.0;
+    no_translation_transform.w.z = 0.0;
 
     // Recreate the transformation matrix.
-    out_pos = r_locals.transform * in_position;
+    out_pos = r_locals.projection * no_translation_transform * in_position;
 }
 
 [[location(0)]]

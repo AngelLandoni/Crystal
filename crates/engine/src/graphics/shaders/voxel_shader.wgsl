@@ -21,7 +21,8 @@ var<out> out_color: vec3<f32>;
 
 [[block]]
 struct Locals {
-    transform: mat4x4<f32>;
+    view: mat4x4<f32>;
+    projection: mat4x4<f32>;
 };
 [[group(0), binding(0)]]
 var r_locals: Locals;
@@ -39,7 +40,7 @@ fn vs_main() {
 	out_color = vec3<f32>(in_color.x, in_color.y, in_color.z);//in_color;
 
 	// Recreate the transformation matrix.
-	out_pos = r_locals.transform * entity_transform * in_position;
+	out_pos = r_locals.projection * r_locals.view * entity_transform * in_position;
 }
 
 [[location(0)]]

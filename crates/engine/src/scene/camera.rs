@@ -10,7 +10,7 @@ use wgpu::{
 use ecs::{UniqueRead, UniqueWrite};
 
 use crate::graphics::{ 
-    pipelines::bind_groups::locals_bind_group::LocalsBuffer,
+    pipelines::bind_groups::locals_bind_group::{LocalsBuffer, Locals},
     gpu::Gpu
 };
 
@@ -83,14 +83,17 @@ impl Camera {
         self.target.z += direction.z * amount;
     }
 
+    pub fn view(&self) -> Matrix4<f32> {
+        Matrix4::look_at(self.eye, self.target, self.up)
+    }
+
     /// Returns the view projection of the camera. 
-    pub fn view_projection(&self) -> Matrix4<f32> {
-        let view = Matrix4::look_at(self.eye, self.target, self.up);
+    pub fn projection(&self) -> Matrix4<f32> {
         let projection = cgmath::perspective(
             cgmath::Deg(self.fovy),
             self.aspect, self.znear,
             self.zfar);
-        OPENGL_TO_WGPU_MATRIX * projection * view
+        OPENGL_TO_WGPU_MATRIX * projection
     }
 }
 
@@ -103,13 +106,15 @@ pub fn mantain_camera_buffer_system(
     locals_buffer: UniqueRead<LocalsBuffer>) {
     let camera_r = camera.read();
     // Create a new enconder.
-    let view_projection: [[f32; 4]; 4] = array4x4(camera_r.view_projection());
-    let view_projection_bytes: &[u8] = bytemuck::cast_slice(&view_projection);
+    let projection: [[f32; 4]; 4] = array4x4(camera_r.projection());
+    let view: [[f32; 4]; 4] = array4x4(camera_r.view());
+    let view_bytes: &[u8] = bytemuck::cast_slice(&view);
+    let projection_bytes: &[u8] = bytemuck::cast_slice(&projection);
 
     gpu
         .read()
         .queue
-        .write_buffer(&locals_buffer.read().0, 0, view_projection_bytes);
+        .write_buffer(&locals_buffer.read().0, 0, &[view_bytes, projection_bytes].concat());
 }
 
 /// Updates the camera aspect.

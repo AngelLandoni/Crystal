@@ -119,14 +119,14 @@ impl SkyRenderPipeline {
                     targets: &[swapchain_format.into()],
                 }),
                 primitive: PrimitiveState {
-                    cull_mode: wgpu::CullMode::Back,
+                    cull_mode: wgpu::CullMode::Front,
                     ..Default::default()
                 },
                 depth_stencil: Some(
                     DepthStencilState {
                         format: DEPTH_FORMAT,
-                        depth_write_enabled: true,
-                        depth_compare: CompareFunction::Less,
+                        depth_write_enabled: false,
+                        depth_compare: CompareFunction::LessEqual,
                         stencil: StencilState::default(),
                         bias: DepthBiasState::default(),
                         clamp_depth: false
