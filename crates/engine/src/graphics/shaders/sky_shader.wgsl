@@ -1,11 +1,14 @@
 [[location(0)]]
 var<in> in_position: vec4<f32>;
-
-[[builtin(vertex_index)]]
-var<in> in_vertex_index: u32;
+[[location(1)]]
+var<in> in_vertex_color: vec4<f32>;
+[[location(2)]]
+var<in> in_uv: vec4<f32>;
 
 [[builtin(position)]]
 var<out> out_pos: vec4<f32>;
+[[location(1)]]
+var<out> out_vertex_color: vec4<f32>;
 
 [[location(0)]]
 var<out> out_color: vec3<f32>;
@@ -37,6 +40,8 @@ fn vs_main() {
 
     // Recreate the transformation matrix.
     out_pos = r_locals.projection * no_translation_transform * in_position;
+
+    out_vertex_color = in_vertex_color;
 }
 
 [[location(0)]]
@@ -44,8 +49,10 @@ var<out> out_color: vec4<f32>;
 
 [[location(0)]]
 var<in> in_color_fs: vec3<f32>;
+[[location(1)]]
+var<in> fs_in_vertex_color: vec4<f32>;
 
 [[stage(fragment)]]
 fn fs_main() {
-    out_color = vec4<f32>(in_color_fs.x, in_color_fs.y, in_color_fs.z, 1.0);
+    out_color = vec4<f32>(fs_in_vertex_color.x, fs_in_vertex_color.y, fs_in_vertex_color.z, 1.0);
 }

@@ -1,18 +1,22 @@
 [[location(0)]]
 var<in> in_position: vec4<f32>;
 [[location(1)]]
+var<in> in_vertex_color: vec4<f32>;
+[[location(2)]]
+var<in> in_uv: vec4<f32>;
+
+[[location(3)]]
 var<in> in_color: vec3<f32>;
 
 // Get the transformation matrix using 4 4D vectors.
-[[location(2)]]
-var<in> in_transform_0: vec4<f32>;
-[[location(3)]]
-var<in> in_transform_1: vec4<f32>;
 [[location(4)]]
-var<in> in_transform_2: vec4<f32>;
+var<in> in_transform_0: vec4<f32>;
 [[location(5)]]
+var<in> in_transform_1: vec4<f32>;
+[[location(6)]]
+var<in> in_transform_2: vec4<f32>;
+[[location(7)]]
 var<in> in_transform_3: vec4<f32>;
-
 
 [[builtin(position)]]
 var<out> out_pos: vec4<f32>;

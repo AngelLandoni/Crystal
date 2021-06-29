@@ -1,4 +1,4 @@
-use cgmath::{Vector3, Matrix4};
+use cgmath::{Vector2, Vector3, Vector4, Matrix4};
 
 use wgpu::{
     RenderPipeline,
@@ -172,6 +172,8 @@ fn create_shader(gpu: &Gpu) -> ShaderModule {
 ///
 /// We can send the data to the GPU using the set_vertex_buffer function.
 fn create_vertex_layout<'a>() -> VertexBufferLayout<'a> {
+    const UNIT_SIZE: usize = std::mem::size_of::<f32>();
+
     VertexBufferLayout {
         // How long is the data that we want to send.
         array_stride: std::mem::size_of::<Vertex>() as BufferAddress,
@@ -188,6 +190,22 @@ fn create_vertex_layout<'a>() -> VertexBufferLayout<'a> {
                 // Where it should map the data in the shader.
                 shader_location: 0
             },
+            VertexAttribute {
+                // The size of the data in GPU.
+                format: VertexFormat::Float4, 
+                // Position on the memory sent by the CPU.
+                offset: (UNIT_SIZE * 4) as u64,
+                // Where it should map the data in the shader.
+                shader_location: 1
+            },
+            VertexAttribute {
+                // The size of the data in GPU.
+                format: VertexFormat::Float2, 
+                // Position on the memory sent by the CPU.
+                offset: (UNIT_SIZE * (4 * 2)) as u64,
+                // Where it should map the data in the shader.
+                shader_location: 2
+            }
             // TODO(Angel): Add the rest of the parameters like UV etc.
         ]
     }
@@ -196,36 +214,36 @@ fn create_vertex_layout<'a>() -> VertexBufferLayout<'a> {
 /// Creates and returns the needed vertices.
 pub(crate) fn create_voxel_vertices() -> Vec<Vertex> {
     [
-        // Top face.
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: 1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: 1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: 1.0 }, [1.0, 1.0]),
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: 1.0 }, [0.0, 1.0]),
-        // Bottom face.
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: -1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: -1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: -1.0 }, [0.0, 1.0]),
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: -1.0 }, [1.0, 1.0]),
-        // Right face.
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: -1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: -1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: 1.0 }, [1.0, 1.0]),
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: 1.0 }, [0.0, 1.0]),
-        // Left face.
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: 1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: 1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: -1.0 }, [0.0, 1.0]),
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: -1.0 }, [1.0, 1.0]),
         // Front face.
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: -1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: -1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: 1.0 }, [0.0, 1.0]),
-        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: 1.0 }, [1.0, 1.0]),
+        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: 1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: 1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: 1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: 1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        // Bottom face.
+        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: -1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: -1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: -1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: -1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        // Right face.
+        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: -1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: -1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: 1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: 1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        // Left face.
+        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: 1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: 1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: -1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: -1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        // TOP face.
+        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: -1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0  }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: -1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0  }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: -1.0, y: 1.0, z: 1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: 1.0, y: 1.0, z: 1.0 }, Vector4 { x: 0.06, y: 0.46, z: 1.0, w: 1.0  }, Vector2 { x: 0.0, y: 0.0 }),
         // Back face.
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: 1.0 }, [0.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: 1.0 }, [1.0, 0.0]),
-        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: -1.0 }, [1.0, 1.0]),
-        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: -1.0 }, [0.0, 1.0])
+        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: 1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: 1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: -1.0, y: -1.0, z: -1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 }),
+        Vertex::new(Vector3 { x: 1.0, y: -1.0, z: -1.0 }, Vector4 { x: 0.46, y: 0.69, z: 1.0, w: 1.0 }, Vector2 { x: 0.0, y: 0.0 })
     ].to_vec()
 }
 
